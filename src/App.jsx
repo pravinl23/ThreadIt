@@ -18,7 +18,7 @@ export default function App() {
           onClick={goBack}
           style={{
             position: 'absolute',
-            top: '85px', // Moved down from 20px to avoid toolba
+            top: '85px',
             left: '20px',
             zIndex: 1000,
             padding: '10px 16px',
@@ -32,7 +32,7 @@ export default function App() {
             alignItems: 'center',
             gap: '8px',
             fontFamily: 'system-ui, sans-serif',
-            backdropFilter: 'blur(4px)' // Added backdrop blur for better visibility
+            backdropFilter: 'blur(4px)'
           }}
           onMouseEnter={(e) => {
             e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.9)'
@@ -44,24 +44,21 @@ export default function App() {
           ← Back to Templates
         </button>
 
-        {/* Garment info indicator - moved to bottom right to avoid right panel */}
+        {/* Tldraw with background template */}
         <div style={{
           position: 'absolute',
-          bottom: '100px', // Positioned above bottom toolbar
-          right: '20px',
-          zIndex: 1000,
-          padding: '10px 16px',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontFamily: 'system-ui, sans-serif',
-          backdropFilter: 'blur(4px)' // Added backdrop blur for consistency
+          inset: 0,
+          backgroundImage: `url(${selectedGarment.image})`,
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          opacity: 0.8, // Make template slightly transparent
         }}>
-          {selectedGarment.name}
+          <Tldraw 
+            persistenceKey={`ThreadSketch-${selectedGarment.id}`}
+            style={{ backgroundColor: 'transparent' }}
+          />
         </div>
-
-        <Tldraw persistenceKey={`ThreadSketch-${selectedGarment.id}`} />
       </div>
     )
   }

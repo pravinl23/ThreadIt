@@ -1,10 +1,12 @@
 const garmentTemplates = [
   { id: 'tee', name: 'T-Shirt', image: '/assets/clothes/Tee.png' },
   { id: 'tee-long', name: 'Long Sleeve Tee', image: '/assets/clothes/Tee Long Sleeve.png' },
+  { id: 'tee-2', name: 'T-Shirt 2', image: '/assets/clothes/Tee 2.png' },
   { id: 'hoodie', name: 'Hoodie', image: '/assets/clothes/Hoodie.png' },
   { id: 'tank', name: 'Tank Top', image: '/assets/clothes/Tank Top 1.png' },
   { id: 'sweater', name: 'Sweater', image: '/assets/clothes/Sweater New.png' },
   { id: 'shorts', name: 'Shorts', image: '/assets/clothes/Shorts.png' },
+  { id: 'jeans', name: 'Jeans', image: '/assets/clothes/Jeans 2.png' },
   { id: 'sweats', name: 'Sweatpants', image: '/assets/clothes/Sweats 3.png' },
 ]
 
