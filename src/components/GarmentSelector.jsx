@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const garmentTemplates = [
   { id: 'tee', name: 'T-Shirt', image: '/assets/clothes/Tee.png' },
   { id: 'tee-long', name: 'Long Sleeve Tee', image: '/assets/clothes/Tee Long Sleeve.png' },
@@ -11,6 +13,13 @@ const garmentTemplates = [
 ]
 
 export function GarmentSelector({ onGarmentSelect }) {
+  const [hoveredId, setHoveredId] = useState(null)
+
+  const handleGarmentClick = (garment) => {
+    console.log('Clicking garment:', garment.name) // Debug log
+    onGarmentSelect(garment)
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -54,26 +63,20 @@ export function GarmentSelector({ onGarmentSelect }) {
           {garmentTemplates.map((garment) => (
             <div
               key={garment.id}
-              onClick={() => onGarmentSelect(garment)}
+              onClick={() => handleGarmentClick(garment)}
+              onMouseEnter={() => setHoveredId(garment.id)}
+              onMouseLeave={() => setHoveredId(null)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 padding: '24px 32px',
-                backgroundColor: '#2a2a2a',
+                backgroundColor: hoveredId === garment.id ? '#3a3a3a' : '#2a2a2a',
                 borderRadius: '16px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                border: '1px solid #3a3a3a'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#3a3a3a'
-                e.target.style.transform = 'translateY(-3px)'
-                e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#2a2a2a'
-                e.target.style.transform = 'translateY(0)'
-                e.target.style.boxShadow = 'none'
+                border: '1px solid #3a3a3a',
+                transform: hoveredId === garment.id ? 'translateY(-3px)' : 'translateY(0)',
+                boxShadow: hoveredId === garment.id ? '0 6px 20px rgba(0, 0, 0, 0.4)' : 'none'
               }}
             >
               <div style={{
@@ -94,21 +97,24 @@ export function GarmentSelector({ onGarmentSelect }) {
                     width: '80px',
                     height: '80px',
                     objectFit: 'contain',
-                    filter: 'brightness(0.9)'
+                    filter: 'brightness(0.9)',
+                    pointerEvents: 'none' // Prevent image from interfering with click
                   }}
                 />
               </div>
               <div style={{
                 fontSize: '28px',
                 fontWeight: '500',
-                color: 'white'
+                color: 'white',
+                pointerEvents: 'none' // Prevent text from interfering with click
               }}>
                 {garment.name}
               </div>
               <div style={{
                 marginLeft: 'auto',
                 color: '#666',
-                fontSize: '20px'
+                fontSize: '20px',
+                pointerEvents: 'none'
               }}>
                 →
               </div>

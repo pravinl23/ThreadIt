@@ -42,6 +42,35 @@ body {
   left: 0;
 }
 
+/* AGGRESSIVE TLDraw background removal */
+.tldraw,
+.tldraw *,
+.tldraw canvas,
+.tldraw svg,
+[data-testid="canvas"],
+.tl-svg-container,
+.tl-background,
+.tldraw__canvas,
+.tldraw__editor {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Target any element that might have white background */
+.tldraw div,
+.tldraw section,
+.tldraw main {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Force transparency on any potential TLDraw containers */
+[class*="tl-"],
+[class*="tldraw"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
 /* Garment Selector Styles */
 .garment-selector {
   display: flex;
