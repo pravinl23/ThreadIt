@@ -27,7 +27,7 @@ export function GarmentSelector({ onGarmentSelect }) {
       backgroundColor: '#1a1a1a',
       color: 'white',
       padding: '60px 40px 120px 40px',
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: 'IBM Plex Mono, monospace',
       overflowY: 'auto'
     }}>
       <div style={{

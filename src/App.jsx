@@ -77,7 +77,7 @@ export default function App() {
         alignItems: 'center',
         justifyContent: 'center',
         color: 'white',
-        fontFamily: 'system-ui, sans-serif'
+        fontFamily: 'IBM Plex Mono, monospace'
       }}>
         Loading canvas...
       </div>
@@ -143,7 +143,7 @@ export default function App() {
             borderRadius: '8px',
             padding: '10px 16px',
             cursor: 'pointer',
-            fontFamily: 'system-ui, sans-serif',
+            fontFamily: 'IBM Plex Mono, monospace',
             fontSize: '14px',
             fontWeight: '500'
           }}
@@ -169,7 +169,7 @@ export default function App() {
           borderRadius: '20px',
           fontSize: '14px',
           fontWeight: '600',
-          fontFamily: 'system-ui, sans-serif'
+          fontFamily: 'IBM Plex Mono, monospace'
         }}>
           {selectedGarment.name}
         </div>
