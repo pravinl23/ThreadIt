@@ -1,64 +1,68 @@
-import { useEffect, useRef } from 'react'
-import { Tldraw, createTLStore } from 'tldraw'
-import { useStore } from '../store/useStore'
+"use client"
 
-export function DesignCanvas() {
-  const {
-    selectedGarment,
-    activeView,
-    frontCanvasStore,
-    backCanvasStore,
-    setFrontCanvasStore,
-    setBackCanvasStore
-  } = useStore()
+import { useEffect, useRef, useState } from "react"
+import { Tldraw } from "tldraw"
+import { motion, AnimatePresence } from "framer-motion"
 
-  // Create stores for both canvases if they don't exist
+export function DesignCanvas({ selectedGarment, activeView, onCanvasReady }) {
+  const canvasRef = useRef(null)
+  const [isLoading, setIsLoading] = useState(true)
+
   useEffect(() => {
-    if (!frontCanvasStore) {
-      const frontStore = createTLStore()
-      setFrontCanvasStore(frontStore)
+    if (canvasRef.current) {
+      setIsLoading(false)
+      if (onCanvasReady) {
+        onCanvasReady(canvasRef.current)
+      }
     }
-    if (!backCanvasStore) {
-      const backStore = createTLStore()
-      setBackCanvasStore(backStore)
-    }
-  }, [frontCanvasStore, backCanvasStore, setFrontCanvasStore, setBackCanvasStore])
+  }, [canvasRef, onCanvasReady])
 
-  if (!selectedGarment || !frontCanvasStore || !backCanvasStore) {
-    return <div className="canvas-loading">Loading canvas...</div>
+  if (!selectedGarment) {
+    return <div className="canvas-loading">No garment selected</div>
   }
 
-  const currentStore = activeView === 'front' ? frontCanvasStore : backCanvasStore
-  const currentGarmentImage = activeView === 'front' 
-    ? selectedGarment.frontImage 
-    : selectedGarment.backImage
+  const templateImage = selectedGarment.image
+  const persistenceKey = `ThreadSketch-${selectedGarment.id}-${activeView}`
 
   return (
     <div className="design-canvas">
-      {/* Garment template background */}
-      <div className="garment-background">
-        <img
-          src={currentGarmentImage}
-          alt={`${selectedGarment.name} ${activeView} view`}
-          className="garment-template"
-          draggable={false}
-        />
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeView}
+          className="canvas-container"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {/* Garment template background */}
+          <div className="garment-background">
+            <img
+              src={templateImage || "/placeholder.svg"}
+              alt={`${selectedGarment.name} template`}
+              className="garment-template"
+              draggable={false}
+            />
+          </div>
 
-      {/* TLDraw canvas overlay */}
-      <div className="canvas-overlay">
-        <Tldraw
-          store={currentStore}
-          persistenceKey={`ThreadSketch-${selectedGarment.id}-${activeView}`}
-          hideUi={true}
-          className="tldraw-canvas"
-        />
-      </div>
+          {/* TLDraw canvas overlay */}
+          <div className="canvas-overlay" ref={canvasRef}>
+            <Tldraw persistenceKey={persistenceKey} hideUi={true} className="tldraw-canvas" />
+          </div>
 
-      {/* View indicator */}
-      <div className="view-indicator">
-        <span className="view-label">{activeView.toUpperCase()} VIEW</span>
-      </div>
+          {/* View indicator */}
+          <div className="view-indicator">
+            <span className="view-label">{activeView.toUpperCase()} VIEW</span>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {isLoading && (
+        <div className="canvas-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading canvas...</p>
+        </div>
+      )}
     </div>
   )
-} 
+}

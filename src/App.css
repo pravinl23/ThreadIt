@@ -1,21 +1,21 @@
 /* Font Face Declarations */
 @font-face {
-  font-family: 'IBM Plex Mono';
-  src: url('/fonts/IBMPlexMono-Regular.ttf') format('truetype');
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'IBM Plex Mono';
-  src: url('/fonts/IBMPlexMono-Medium.ttf') format('truetype');
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'IBM Plex Mono';
-  src: url('/fonts/IBMPlexMono-Bold.ttf') format('truetype');
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
 }
@@ -28,16 +28,23 @@
 }
 
 body {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: "IBM Plex Mono", monospace;
   background: #1a1a1a;
   color: white;
-  overflow: hidden;
+  overflow-y: auto; /* Changed from 'hidden' to 'auto' */
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+html {
+  overflow-y: auto; /* Ensure HTML allows scrolling */
 }
 
 .app {
-  height: 100vh;
+  min-height: 100vh; /* Changed from height to min-height */
   width: 100vw;
-  position: fixed;
+  position: relative; /* Changed from fixed to relative */
   top: 0;
   left: 0;
 }
@@ -69,6 +76,334 @@ body {
 [class*="tldraw"] {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+/* Enhanced Garment Selector Styles */
+.selector-page {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative; /* Changed from not specified to relative */
+  height: auto; /* Explicitly set height to auto */
+}
+
+.selector-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 40px 120px;
+}
+
+/* Header Styles */
+.selector-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.selector-title {
+  font-size: 80px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+  background: linear-gradient(to right, #ffffff, #cccccc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.title-underline {
+  height: 4px;
+  width: 120px;
+  background: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0.3));
+  margin: 0 auto 24px;
+  border-radius: 2px;
+}
+
+.selector-subtitle {
+  font-size: 24px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Category Tabs */
+.category-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 60px;
+  position: relative;
+}
+
+.category-tab {
+  position: relative;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+}
+
+.category-tab:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.category-tab.active {
+  color: white;
+}
+
+.active-indicator {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 3px;
+  width: 20px;
+  background: white;
+  border-radius: 1.5px;
+}
+
+/* Garments Grid */
+.garments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 40px;
+  margin-bottom: 80px;
+}
+
+.garment-item {
+  background: #222222;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #333333;
+}
+
+.garment-item:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  background: #2a2a2a;
+  border-color: #444444;
+}
+
+.garment-image-container {
+  position: relative;
+  padding-top: 100%;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+
+.garment-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10%;
+  transition: all 0.3s ease;
+}
+
+.garment-item:hover .garment-image {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.garment-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.garment-item:hover .garment-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.select-label {
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 12px 32px;
+  border: 2px solid white;
+  border-radius: 30px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.garment-item:hover .select-label {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.garment-details {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.garment-name {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.select-arrow {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.garment-item:hover .select-arrow {
+  color: white;
+  transform: translateX(4px);
+}
+
+/* Footer Styles */
+.selector-footer {
+  text-align: center;
+  padding-top: 60px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feature-list {
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  margin-bottom: 40px;
+}
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.feature-icon {
+  width: 60px;
+  height: 60px;
+  background: #2a2a2a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.footer-text {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .selector-content {
+    padding: 60px 30px 100px;
+  }
+
+  .selector-title {
+    font-size: 64px;
+  }
+
+  .garments-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .selector-content {
+    padding: 40px 20px 80px;
+  }
+
+  .selector-title {
+    font-size: 48px;
+  }
+
+  .selector-subtitle {
+    font-size: 20px;
+  }
+
+  .category-tabs {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .category-tab {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .garments-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .feature-list {
+    gap: 30px;
+  }
+
+  .feature-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .selector-content {
+    padding: 30px 15px 60px;
+  }
+
+  .selector-title {
+    font-size: 36px;
+  }
+
+  .selector-subtitle {
+    font-size: 16px;
+  }
+
+  .garments-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .feature-list {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .feature {
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
 }
 
 /* Garment Selector Styles */
@@ -344,8 +679,13 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .ai-progress {
@@ -368,9 +708,15 @@ body {
 }
 
 @keyframes progress {
-  0% { width: 0%; }
-  50% { width: 70%; }
-  100% { width: 100%; }
+  0% {
+    width: 0%;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
 }
 
 .progress-text {
@@ -502,40 +848,4 @@ body {
 /* TLDraw overrides */
 .tldraw__ui {
   display: none !important;
-}
-
-/* Responsive design */
-@media (max-width: 1024px) {
-  .toolbar {
-    width: 280px;
-  }
-  
-  .garment-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .design-workspace {
-    flex-direction: column;
-  }
-  
-  .toolbar {
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    overflow-x: auto;
-    border-right: none;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .garment-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
-  }
-  
-  .title {
-    font-size: 2.5rem;
-  }
 }

@@ -1,32 +1,46 @@
-import { 
-  Wand2, 
-  RotateCcw, 
-  Save, 
-  Download, 
-  Palette,
+"use client"
+
+import {
+  Wand2,
+  Download,
   Brush,
   ArrowLeft,
   Eye,
-  EyeOff
-} from 'lucide-react'
-import { useStore } from '../store/useStore'
+  Undo,
+  Redo,
+  Eraser,
+  Square,
+  Circle,
+  Type,
+  ImageIcon,
+  Layers,
+} from "lucide-react"
+import { useState } from "react"
 
-export function Toolbar() {
-  const {
-    selectedGarment,
-    activeView,
-    isProcessingAI,
-    aiProgress,
-    selectedColor,
-    brushSize,
-    setActiveView,
-    enhanceDrawing,
-    saveDesign,
-    exportDesign,
-    setSelectedColor,
-    setBrushSize,
-    resetToTemplateSelection
-  } = useStore()
+export function Toolbar({
+  selectedGarment,
+  activeView,
+  selectedColor,
+  brushSize,
+  isProcessingAI,
+  aiProgress,
+  onViewChange,
+  onColorChange,
+  onBrushSizeChange,
+  onEnhanceDrawing,
+  onExportDesign,
+  onBackToTemplates,
+}) {
+  const [activeTool, setActiveTool] = useState("brush")
+
+  const tools = [
+    { id: "brush", name: "Brush", icon: <Brush size={20} /> },
+    { id: "eraser", name: "Eraser", icon: <Eraser size={20} /> },
+    { id: "square", name: "Square", icon: <Square size={20} /> },
+    { id: "circle", name: "Circle", icon: <Circle size={20} /> },
+    { id: "text", name: "Text", icon: <Type size={20} /> },
+    { id: "image", name: "Image", icon: <ImageIcon size={20} /> },
+  ]
 
   if (!selectedGarment) return null
 
@@ -34,11 +48,7 @@ export function Toolbar() {
     <div className="toolbar">
       {/* Header with garment info and back button */}
       <div className="toolbar-header">
-        <button 
-          className="back-button"
-          onClick={resetToTemplateSelection}
-          title="Back to template selection"
-        >
+        <button className="back-button" onClick={onBackToTemplates} title="Back to template selection">
           <ArrowLeft size={20} />
         </button>
         <div className="garment-info">
@@ -49,29 +59,46 @@ export function Toolbar() {
       {/* View Switcher */}
       <div className="view-switcher">
         <button
-          className={`view-button ${activeView === 'front' ? 'active' : ''}`}
-          onClick={() => setActiveView('front')}
+          className={`view-button ${activeView === "front" ? "active" : ""}`}
+          onClick={() => onViewChange("front")}
         >
-          Front
+          <Eye size={16} />
+          <span>Front</span>
         </button>
-        <button
-          className={`view-button ${activeView === 'back' ? 'active' : ''}`}
-          onClick={() => setActiveView('back')}
-        >
-          Back
+        <button className={`view-button ${activeView === "back" ? "active" : ""}`} onClick={() => onViewChange("back")}>
+          <Eye size={16} />
+          <span>Back</span>
         </button>
       </div>
 
       {/* Drawing Tools */}
       <div className="tool-section">
+        <h3 className="section-title">Tools</h3>
+
+        <div className="tools-grid">
+          {tools.map((tool) => (
+            <button
+              key={tool.id}
+              className={`tool-button ${activeTool === tool.id ? "active" : ""}`}
+              onClick={() => setActiveTool(tool.id)}
+              title={tool.name}
+            >
+              {tool.icon}
+            </button>
+          ))}
+        </div>
+
         <div className="tool-group">
           <label className="tool-label">Color</label>
-          <input
-            type="color"
-            value={selectedColor}
-            onChange={(e) => setSelectedColor(e.target.value)}
-            className="color-picker"
-          />
+          <div className="color-picker-container">
+            <input
+              type="color"
+              value={selectedColor}
+              onChange={(e) => onColorChange(e.target.value)}
+              className="color-picker"
+            />
+            <span className="color-value">{selectedColor}</span>
+          </div>
         </div>
 
         <div className="tool-group">
@@ -81,24 +108,43 @@ export function Toolbar() {
             min="1"
             max="20"
             value={brushSize}
-            onChange={(e) => setBrushSize(parseInt(e.target.value))}
+            onChange={(e) => onBrushSizeChange(Number.parseInt(e.target.value))}
             className="brush-slider"
           />
-          <span className="brush-size-display">{brushSize}px</span>
+          <div className="brush-size-preview">
+            <div
+              className="brush-preview-dot"
+              style={{
+                width: `${brushSize * 2}px`,
+                height: `${brushSize * 2}px`,
+                background: selectedColor,
+              }}
+            ></div>
+            <span className="brush-size-value">{brushSize}px</span>
+          </div>
+        </div>
+
+        <div className="history-controls">
+          <button className="history-button" title="Undo">
+            <Undo size={18} />
+          </button>
+          <button className="history-button" title="Redo">
+            <Redo size={18} />
+          </button>
         </div>
       </div>
 
       {/* Magic Wand Section */}
       <div className="magic-section">
         <button
-          className={`magic-button ${isProcessingAI ? 'processing' : ''}`}
-          onClick={enhanceDrawing}
+          className={`magic-button ${isProcessingAI ? "processing" : ""}`}
+          onClick={onEnhanceDrawing}
           disabled={isProcessingAI}
         >
           <Wand2 size={20} />
-          <span>{isProcessingAI ? 'Enhancing...' : 'Magic Wand'}</span>
+          <span>{isProcessingAI ? "Enhancing..." : "Enhance with AI"}</span>
         </button>
-        
+
         {aiProgress && (
           <div className="ai-progress">
             <div className="progress-bar">
@@ -111,16 +157,16 @@ export function Toolbar() {
 
       {/* Actions */}
       <div className="action-buttons">
-        <button className="action-button save" onClick={saveDesign}>
-          <Save size={18} />
-          <span>Save</span>
-        </button>
-        
-        <button className="action-button export" onClick={exportDesign}>
+        <button className="action-button export" onClick={onExportDesign}>
           <Download size={18} />
-          <span>Export</span>
+          <span>Export Design</span>
+        </button>
+
+        <button className="action-button layers">
+          <Layers size={18} />
+          <span>Manage Layers</span>
         </button>
       </div>
     </div>
   )
-} 
+}
