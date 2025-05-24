@@ -744,6 +744,7 @@ export default function App() {
     return (
       <FinalDesign 
         designData={{ previewUrl }}
+        selectedGarment={selectedGarment}
         onBack={() => {
           setPreviewUrl(null)
           setCurrentView('design')

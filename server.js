@@ -86,26 +86,35 @@ async function takeScreenshot() {
 }
 
 // Function to generate product details using Claude
-async function generateProductDetails() {
+async function generateProductDetails(garmentType = 'T-Shirt') {
   try {
     console.log('🤖 Generating product details with Claude 3.5 Sonnet...')
+    console.log('🎽 Creating product name for:', garmentType)
     
     const response = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022", // Best model available
       max_tokens: 500,
       messages: [{
         role: "user",
-        content: `Generate a creative product name and description for a custom ThreadIt design. This is for a unique garment created by a user using our design app.
+        content: `Generate a creative product name and description for a custom ${garmentType} design created with ThreadIt.
 
-Create a catchy, creative product name that suggests uniqueness and style. Use words that suggest creativity, art, or fashion (e.g., "Neon Nights Bomber", "Cosmic Dreams Tee", "Midnight Canvas Hoodie", "Electric Vibes Tank").
+The garment type is: ${garmentType}
+
+Create a catchy, creative product name that fits this specific garment type and suggests uniqueness and style. Use words that suggest creativity, art, or fashion.
+
+Examples for different types:
+- T-Shirt: "Neon Dreams Tee", "Cosmic Canvas Shirt", "Urban Art Tee"  
+- Hoodie: "Midnight Vibes Hoodie", "Street Art Pullover", "Creative Flow Hoodie"
+- Tank Top: "Summer Pulse Tank", "Minimalist Art Tank", "Urban Edge Tank"
+- Sweater: "Cozy Canvas Sweater", "Artistic Comfort Pullover"
 
 Return ONLY a valid JSON object with title, description, and tags. No extra text.
 
-Example format:
+Format:
 {
-  "title": "Neon Nights Bomber",
-  "description": "A one-of-a-kind design created with ThreadIt's creative tools. This unique piece showcases artistic expression and personal style.",
-  "tags": ["ThreadIt", "custom-design", "unique", "artistic", "limited-edition"]
+  "title": "[Creative Name] ${garmentType}",
+  "description": "A one-of-a-kind ${garmentType.toLowerCase()} design created with ThreadIt's creative tools. This unique piece showcases artistic expression and personal style.",
+  "tags": ["ThreadIt", "custom-design", "unique", "artistic", "${garmentType.toLowerCase()}"]
 }`
       }]
     })
@@ -420,11 +429,15 @@ app.post('/add-product', async (req, res) => {
       })
     }
 
+    // Get garment type from request body
+    const { garmentType } = req.body
+    console.log('🎽 Garment type received:', garmentType)
+
     console.log('📸 Taking screenshot...')
     await takeScreenshot()
 
     console.log('🤖 Generating product details with AI...')
-    const productDetails = await generateProductDetails()
+    const productDetails = await generateProductDetails(garmentType)
 
     console.log('🎨 Installing ThreadIt theme...')
     const themeResult = await installShopifyTheme()

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-export function FinalDesign({ designData, onBack }) {
+export function FinalDesign({ designData, selectedGarment, onBack }) {
   const [isLaunching, setIsLaunching] = useState(false)
   const [launched, setLaunched] = useState(false)
   const [progress, setProgress] = useState('')
@@ -43,6 +43,9 @@ export function FinalDesign({ designData, onBack }) {
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          garmentType: selectedGarment?.name || 'T-Shirt'
+        }),
       })
 
       const data = await response.json()
