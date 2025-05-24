@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url)
 const FormData = require('form-data')
 import formidable from 'formidable'
 import { nanoid } from 'nanoid'
-import { generateProduct, enhanceProduct } from './src/services/productProcessor.js'
+import { generateProduct, enhanceProduct } from './src/services/productGenerator.js'
 
 dotenv.config()
 

@@ -50,7 +50,7 @@ async function resizeToAllowedDimensions(imageBuffer) {
 }
 
 /**
- * Generates a product image from a sketch
+ * Generates a product image from a sketch using Stability AI
  * @param {string} sketchPath - Path to the sketch
  * @param {string} outputPath - Path to save the result
  * @returns {Promise<string>} - Path to the generated image
@@ -121,9 +121,9 @@ async function generateProductImage(sketchPath, outputPath) {
 }
 
 /**
- * Main generation function
+ * Main generation function for command line usage
  */
-async function generateProduct() {
+async function generateProductCLI() {
   try {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const projectRoot = path.resolve(__dirname, '../../');
@@ -151,43 +151,19 @@ async function generateProduct() {
 
 // Run the generation
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  generateProduct()
+  generateProductCLI()
     .catch(error => {
       console.error('Generation failed:', error);
       process.exit(1);
     });
 }
 
+// Export function for server usage (Stability AI-based)
 export async function generateProduct(inputPath, outputPath) {
-  try {
-    console.log(`🎨 Generating product from: ${inputPath}`)
-    
-    // Load the input image
-    const image = await loadImage(inputPath)
-    const canvas = createCanvas(image.width, image.height)
-    const ctx = canvas.getContext('2d')
-    
-    // Draw the original image
-    ctx.drawImage(image, 0, 0)
-    
-    // Add some basic enhancement (this is a placeholder - you can expand this)
-    ctx.globalAlpha = 0.1
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.globalAlpha = 1.0
-    
-    // Save the generated product
-    const buffer = canvas.toBuffer('image/png')
-    fs.writeFileSync(outputPath, buffer)
-    
-    console.log(`✅ Product generated: ${outputPath}`)
-    return outputPath
-  } catch (error) {
-    console.error('❌ Product generation failed:', error)
-    throw error
-  }
+  return await generateProductImage(inputPath, outputPath);
 }
 
+// Export function for server usage (Claude + Canvas-based enhancement)
 export async function enhanceProduct(inputPath, outputPath) {
   try {
     console.log(`✨ Enhancing product from: ${inputPath}`)
