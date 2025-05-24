@@ -15,13 +15,17 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
+    "form-data": "^4.0.2",
+    "form-data-encoder": "^4.0.2",
+    "formdata-node": "^6.0.3",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.279.0",
     "multer": "^1.4.5-lts.1",
-    "node-fetch": "^2.7.0",
+    "node-fetch": "^3.3.2",
     "puppeteer": "^22.6.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "sharp": "^0.34.2",
     "tldraw": "^3.13.1",
     "zustand": "^4.4.1"
   },
@@ -33,6 +37,6 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
-    "vite": "^4.4.5"
+    "vite": "^6.3.5"
   }
 }
