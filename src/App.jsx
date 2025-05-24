@@ -9,7 +9,7 @@ import "./App.css"
 export default function App() {
   const [selectedGarment, setSelectedGarment] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved'
+  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved', 'thread'
   const [savedDesigns, setSavedDesigns] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -324,7 +324,7 @@ export default function App() {
         />
 
         {/* Navigation and action buttons */}
-        <div style={{ position: "absolute", top: "47px", left: "5px", zIndex: 1000, display: "flex", gap: "10px" }}>
+        <div style={{ position: "absolute", top: "47px", left: "5px", zIndex: 1000, display: "flex", gap: "10px", alignItems: "center" }}>
           {/* Back button */}
           <button
             onClick={handleBackToTemplates}
@@ -383,7 +383,7 @@ export default function App() {
           {/* Thread It button */}
           <button
             onClick={() => {
-              console.log("hi")
+              setCurrentView('thread')
             }}
             style={{
               background: "#0ea5e9",
@@ -427,7 +427,7 @@ export default function App() {
               border: "1px solid #333",
               fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
               textAlign: "center",
-              maxWidth: "400px",
+              maxWidth: "1000px",
             }}>
               <h3 style={{ marginBottom: "20px", fontSize: "18px" }}>Save Before Leaving?</h3>
               <p style={{ marginBottom: "30px", color: "#ccc", lineHeight: "1.5" }}>
@@ -441,13 +441,14 @@ export default function App() {
                     color: "white",
                     border: "none",
                     borderRadius: "8px",
-                    padding: "12px 20px",
+                    padding: "12px 24px",
                     cursor: "pointer",
                     fontSize: "14px",
                     fontWeight: "500",
+                    minWidth: "300px",
                   }}
                 >
-                  💾 Save & Exit
+                  Save & Exit
                 </button>
                 <button
                   onClick={handleDiscardChanges}
@@ -456,13 +457,14 @@ export default function App() {
                     color: "white",
                     border: "none",
                     borderRadius: "8px",
-                    padding: "12px 20px",
+                    padding: "12px 24px",
                     cursor: "pointer",
                     fontSize: "14px",
                     fontWeight: "500",
+                    minWidth: "300px",
                   }}
                 >
-                  🚪 Exit Without Saving
+                  Exit Without Saving
                 </button>
                 <button
                   onClick={() => setShowSaveDialog(false)}
@@ -471,10 +473,11 @@ export default function App() {
                     color: "white",
                     border: "none",
                     borderRadius: "8px",
-                    padding: "12px 20px",
+                    padding: "12px 24px",
                     cursor: "pointer",
                     fontSize: "14px",
                     fontWeight: "500",
+                    minWidth: "300px",
                   }}
                 >
                   Cancel
@@ -495,6 +498,156 @@ export default function App() {
       onBack={() => setCurrentView('templates')}
       onViewDesign={handleViewDesign}
     />
+  }
+
+  // Show thread page
+  if (currentView === 'thread') {
+    const handleLaunchIt = async () => {
+      try {
+        console.log("Launching product to Shopify...")
+        const response = await fetch('http://localhost:3001/add-product', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          alert(`✅ Product added to waitlist successfully!\nTitle: ${data.aiDetails?.title || 'ThreadSketch Design'}\nCustomers can now sign up for updates!`)
+          console.log("Product created:", data.product)
+          console.log("AI-generated details:", data.aiDetails)
+        } else {
+          alert(`❌ Failed to add product: ${data.error}`)
+          console.error("Error:", data.error)
+        }
+      } catch (error) {
+        alert(`❌ Error connecting to server: ${error.message}`)
+        console.error("Network error:", error)
+      }
+    }
+
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "#1a1a1a",
+        color: "white",
+        fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        padding: "20px",
+      }}>
+        <button
+          onClick={() => setCurrentView('templates')}
+          style={{
+            position: "absolute",
+            top: "20px",
+            left: "20px",
+            background: "#333",
+            color: "white",
+            border: "1px solid #555",
+            borderRadius: "8px",
+            padding: "10px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
+          }}
+        >
+          ← Back
+        </button>
+        
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          maxWidth: "800px",
+          width: "100%",
+        }}>
+          <h1 style={{
+            fontSize: "32px",
+            margin: "0 0 30px 0",
+            textAlign: "center",
+          }}>
+            AI Design Preview
+          </h1>
+
+          <div style={{
+            background: "#2a2a2a",
+            border: "2px solid #444",
+            borderRadius: "12px",
+            padding: "20px",
+            marginBottom: "30px",
+            maxWidth: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "400px",
+          }}>
+            <img
+              src="/output.png"
+              alt="AI Generated Design"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "600px",
+                objectFit: "contain",
+                borderRadius: "8px",
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none'
+                e.target.nextSibling.style.display = 'block'
+              }}
+            />
+            <div style={{
+              display: "none",
+              color: "#666",
+              textAlign: "center",
+              fontSize: "16px",
+            }}>
+              📸 No design image found<br/>
+              <small>output.png will appear here when generated</small>
+            </div>
+          </div>
+
+          <p style={{
+            color: "#ccc",
+            textAlign: "center",
+            marginBottom: "20px",
+            fontSize: "16px",
+            lineHeight: "1.5",
+          }}>
+            This design will be added to your waitlist. Customers can sign up to be notified when it becomes available.
+          </p>
+        </div>
+
+        <button
+          onClick={handleLaunchIt}
+          style={{
+            position: "absolute",
+            bottom: "40px",
+            background: "#95BF47",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "16px 32px",
+            cursor: "pointer",
+            fontSize: "16px",
+            fontWeight: "600",
+            transition: "background-color 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = "#7DA93F"
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = "#95BF47"
+          }}
+        >
+          Launch It
+        </button>
+      </div>
+    )
   }
 
   // Show garment selector with navigation
