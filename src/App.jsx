@@ -88,7 +88,7 @@ export default function App() {
           id: shapeId,
           type: 'image',
           x: -scaledWidth / 2, // Center horizontally
-          y: -scaledHeight / 2, // Center vertically
+          y: -scaledHeight / 2, // Move down by 100 units
           opacity: 0.4,
           isLocked: true,
           props: {
@@ -147,8 +147,8 @@ export default function App() {
           onClick={handleBackToTemplates}
           style={{
             position: "absolute",
-            top: "20px",
-            left: "20px",
+            top: "47px",
+            left: "5px",
             zIndex: 1000,
             background: "#333",
             color: "white",
@@ -158,7 +158,7 @@ export default function App() {
             cursor: "pointer",
             fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
             fontSize: "14px",
-            fontWeight: "500",
+            fontWeight: "300",
           }}
           onMouseEnter={(e) => {
             e.target.style.background = "#444"
@@ -169,25 +169,6 @@ export default function App() {
         >
           ← Back to Templates
         </button>
-
-        {/* Garment info indicator */}
-        <div
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            zIndex: 1000,
-            background: "rgba(0, 0, 0, 0.7)",
-            color: "white",
-            padding: "8px 16px",
-            borderRadius: "20px",
-            fontSize: "14px",
-            fontWeight: "600",
-            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
-          }}
-        >
-          {selectedGarment.name}
-        </div>
       </div>
     )
   }
