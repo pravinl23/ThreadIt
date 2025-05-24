@@ -5,6 +5,9 @@ import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import { FormData, File } from 'formdata-node';
 import sharp from 'sharp';
+import Anthropic from '@anthropic-ai/sdk'
+import fs from 'fs'
+import { createCanvas, loadImage } from 'canvas'
 
 dotenv.config();
 
@@ -23,6 +26,10 @@ const ALLOWED_DIMENSIONS = [
   { width: 832, height: 1216 },
   { width: 896, height: 1152 }
 ];
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 
 /**
  * Resizes an image to the nearest allowed dimensions
@@ -149,4 +156,84 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       console.error('Generation failed:', error);
       process.exit(1);
     });
+}
+
+export async function generateProduct(inputPath, outputPath) {
+  try {
+    console.log(`🎨 Generating product from: ${inputPath}`)
+    
+    // Load the input image
+    const image = await loadImage(inputPath)
+    const canvas = createCanvas(image.width, image.height)
+    const ctx = canvas.getContext('2d')
+    
+    // Draw the original image
+    ctx.drawImage(image, 0, 0)
+    
+    // Add some basic enhancement (this is a placeholder - you can expand this)
+    ctx.globalAlpha = 0.1
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.globalAlpha = 1.0
+    
+    // Save the generated product
+    const buffer = canvas.toBuffer('image/png')
+    fs.writeFileSync(outputPath, buffer)
+    
+    console.log(`✅ Product generated: ${outputPath}`)
+    return outputPath
+  } catch (error) {
+    console.error('❌ Product generation failed:', error)
+    throw error
+  }
+}
+
+export async function enhanceProduct(inputPath, outputPath) {
+  try {
+    console.log(`✨ Enhancing product from: ${inputPath}`)
+    
+    // Use Claude to generate enhancement ideas (this is a conceptual example)
+    const response = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 300,
+      messages: [{
+        role: "user",
+        content: "Generate creative enhancement ideas for a ThreadSketch design. Return a JSON object with color suggestions, style improvements, and visual effects that could be applied."
+      }]
+    })
+    
+    console.log('🤖 Claude enhancement suggestions:', response.content[0].text)
+    
+    // Load and enhance the image
+    const image = await loadImage(inputPath)
+    const canvas = createCanvas(image.width, image.height)
+    const ctx = canvas.getContext('2d')
+    
+    // Draw the original image
+    ctx.drawImage(image, 0, 0)
+    
+    // Apply enhancement effects (placeholder - expand based on Claude suggestions)
+    ctx.globalCompositeOperation = 'overlay'
+    ctx.globalAlpha = 0.15
+    
+    // Add a subtle gradient overlay
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
+    gradient.addColorStop(0, '#4F46E5')
+    gradient.addColorStop(1, '#7C3AED')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.globalAlpha = 1.0
+    
+    // Save the enhanced product
+    const buffer = canvas.toBuffer('image/png')
+    fs.writeFileSync(outputPath, buffer)
+    
+    console.log(`✅ Product enhanced: ${outputPath}`)
+    return outputPath
+  } catch (error) {
+    console.error('❌ Product enhancement failed:', error)
+    throw error
+  }
 } 

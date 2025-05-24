@@ -6,6 +6,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import puppeteer from 'puppeteer'
 import fs from 'fs'
 import path from 'path'
+import formidable from 'formidable'
+import { nanoid } from 'nanoid'
+import { generateProduct, enhanceProduct } from './src/services/productProcessor.js'
 
 dotenv.config()
 
@@ -35,8 +38,9 @@ if (!cleanShop || !ADMIN_API_TOKEN || !ANTHROPIC_API_KEY) {
   console.error('Please create a .env file with your credentials')
 }
 
-// Serve static files (for output.png)
+// Serve static files (for output.png and uploads)
 app.use('/static', express.static('public'))
+app.use('/uploads', express.static('public/uploads'))
 
 // Function to take screenshot and save as output.png
 async function takeScreenshot() {
@@ -160,8 +164,21 @@ Example:
 // Function to upload image to Shopify
 async function uploadImageToShopify(productId) {
   try {
-    // Read the image file
-    const imageBuffer = fs.readFileSync('public/output.png')
+    // Read the Thread It enhanced image file
+    const imagePath = 'public/uploads/thread-it-enhanced.png'
+    
+    // Check if Thread It enhanced image exists, fallback to output.png if not
+    let imageBuffer
+    if (fs.existsSync(imagePath)) {
+      imageBuffer = fs.readFileSync(imagePath)
+      console.log('📷 Using Thread It enhanced image for Shopify upload')
+    } else if (fs.existsSync('public/output.png')) {
+      imageBuffer = fs.readFileSync('public/output.png')
+      console.log('📷 Using fallback image for Shopify upload')
+    } else {
+      throw new Error('No image file found to upload')
+    }
+    
     const base64Image = imageBuffer.toString('base64')
     
     console.log('📷 Uploading design image to Shopify...')
@@ -175,7 +192,7 @@ async function uploadImageToShopify(productId) {
       body: JSON.stringify({
         image: {
           attachment: base64Image,
-          filename: 'design.png',
+          filename: 'thread-it-design.png',
           alt: 'Custom ThreadSketch Design'
         }
       })
@@ -195,6 +212,76 @@ async function uploadImageToShopify(productId) {
     return null
   }
 }
+
+// Thread It API route
+app.post('/api/thread-it', async (req, res) => {
+  try {
+    console.log('🚀 Thread It request received')
+    
+    // Parse multipart form data
+    const form = formidable({
+      uploadDir: './public/uploads',
+      keepExtensions: true,
+      maxFileSize: 10 * 1024 * 1024, // 10MB limit
+    })
+    
+    const [fields, files] = await form.parse(req)
+    const uploadedFile = files.image?.[0]
+    
+    if (!uploadedFile) {
+      return res.status(400).json({ error: 'No image file provided' })
+    }
+    
+    console.log('📸 Processing Thread It request...')
+    
+    // Use fixed filenames instead of random session IDs
+    const rawPath = uploadedFile.filepath
+    const midPath = path.join('./public/uploads', 'thread-it-generated.png')
+    const finalPath = path.join('./public/uploads', 'thread-it-enhanced.png')
+    
+    // Delete existing files if they exist
+    try {
+      if (fs.existsSync(midPath)) fs.unlinkSync(midPath)
+      if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath)
+      console.log('🗑️ Cleaned up existing Thread It files')
+    } catch (cleanupError) {
+      console.warn('⚠️ Cleanup warning:', cleanupError.message)
+    }
+    
+    console.log('🎨 Starting AI processing pipeline...')
+    
+    // Step 1: Generate product image
+    await generateProduct(rawPath, midPath)
+    
+    // Step 2: Enhance the product image
+    await enhanceProduct(midPath, finalPath)
+    
+    // Clean up intermediate files
+    try {
+      fs.unlinkSync(rawPath)
+      fs.unlinkSync(midPath)
+    } catch (cleanupError) {
+      console.warn('⚠️ Cleanup warning:', cleanupError.message)
+    }
+    
+    // Return the enhanced image URL with consistent filename
+    const resultUrl = '/uploads/thread-it-enhanced.png'
+    console.log(`✅ Thread It completed: ${resultUrl}`)
+    
+    res.json({ 
+      success: true,
+      url: resultUrl,
+      filename: 'thread-it-enhanced.png'
+    })
+    
+  } catch (error) {
+    console.error('❌ Thread It error:', error)
+    res.status(500).json({ 
+      error: 'Thread It processing failed', 
+      details: error.message 
+    })
+  }
+})
 
 app.post('/add-product', async (req, res) => {
   try {

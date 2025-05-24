@@ -83,6 +83,10 @@ export const useStore = create((set, get) => ({
   isProcessingAI: false,
   aiProgress: null,
 
+  // Thread It preview state
+  previewUrl: null,
+  isThreading: false,
+
   // UI state
   showTemplateSelector: true,
   showToolbar: true,
@@ -99,6 +103,10 @@ export const useStore = create((set, get) => ({
   setAiProgress: (progress) => set({ aiProgress: progress }),
   setShowTemplateSelector: (show) => set({ showTemplateSelector: show }),
   setShowToolbar: (show) => set({ showToolbar: show }),
+
+  // Thread It actions
+  setPreviewUrl: (url) => set({ previewUrl: url }),
+  setIsThreading: (threading) => set({ isThreading: threading }),
 
   // Get current active canvas ref
   getActiveCanvasRef: () => {

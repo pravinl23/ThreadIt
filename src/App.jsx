@@ -5,12 +5,13 @@ import { Tldraw, createShapeId, AssetRecordType } from "tldraw"
 import { GarmentSelector } from "./components/GarmentSelector"
 import { SavedDesigns } from "./components/SavedDesigns"
 import { FinalDesign } from "./components/FinalDesign"
+import { useStore } from "./store/useStore"
 import "./App.css"
 
 export default function App() {
   const [selectedGarment, setSelectedGarment] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved', 'thread'
+  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved', 'thread', 'preview'
   const [savedDesigns, setSavedDesigns] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -18,6 +19,9 @@ export default function App() {
   const [sessionId, setSessionId] = useState(null) // For unique persistence key
   const templateLoadedRef = useRef(false)
   const initialCanvasStateRef = useRef(null)
+
+  // Zustand store
+  const { previewUrl, setPreviewUrl, isThreading, setIsThreading } = useStore()
 
   // Debug logging
   useEffect(() => {
@@ -383,29 +387,107 @@ export default function App() {
 
           {/* Thread It button */}
           <button
-            onClick={() => {
-              setCurrentView('thread')
+            onClick={async () => {
+              if (!currentEditor) {
+                alert('❌ Canvas not ready. Please try again.')
+                return
+              }
+
+              try {
+                setIsThreading(true)
+                console.log('🚀 Thread It: Capturing canvas...')
+
+                // Get all shapes on current page
+                const shapeIds = currentEditor.getCurrentPageShapeIds()
+                if (shapeIds.size === 0) {
+                  throw new Error('No shapes on canvas')
+                }
+
+                // Capture canvas as PNG with white background and 2x scale  
+                const { blob } = await currentEditor.toImage([...shapeIds], {
+                  format: 'png',
+                  background: true,
+                  scale: 2
+                })
+
+                if (!blob) {
+                  throw new Error('Failed to capture canvas')
+                }
+
+                // Prepare form data
+                const formData = new FormData()
+                formData.append('image', blob, 'design.png')
+
+                console.log('📤 Sending to Thread It API...')
+
+                // Send to Thread It API
+                const response = await fetch('http://localhost:3001/api/thread-it', {
+                  method: 'POST',
+                  body: formData
+                })
+
+                const data = await response.json()
+
+                if (response.ok && data.success) {
+                  console.log('✅ Thread It success:', data.url)
+                  // Construct full URL pointing to Express server
+                  const fullImageUrl = `http://localhost:3001${data.url}`
+                  setPreviewUrl(fullImageUrl)
+                  setCurrentView('preview')
+                } else {
+                  throw new Error(data.error || 'Thread It failed')
+                }
+
+              } catch (error) {
+                console.error('❌ Thread It error:', error)
+                alert(`❌ Thread It failed: ${error.message}`)
+              } finally {
+                setIsThreading(false)
+              }
             }}
+            disabled={isThreading}
             style={{
-              background: "#0ea5e9",
+              background: isThreading ? "#6b7280" : "#0ea5e9",
               color: "white",
               border: "1px solid #555",
               borderRadius: "8px",
               padding: "10px 16px",
-              cursor: "pointer",
+              cursor: isThreading ? "not-allowed" : "pointer",
               fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
               fontSize: "14px",
               fontWeight: "300",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = "#0284c7"
+              if (!isThreading) {
+                e.target.style.background = "#0284c7"
+              }
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = "#0ea5e9"
+              if (!isThreading) {
+                e.target.style.background = "#0ea5e9"
+              }
             }}
-            title="Thread It - Coming soon!"
+            title={isThreading ? "Processing your design..." : "Transform your design with AI"}
           >
-            🧵 Thread It
+            {isThreading ? (
+              <>
+                <span style={{ 
+                  display: 'inline-block', 
+                  width: '14px', 
+                  height: '14px', 
+                  border: '2px solid #ffffff',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></span>
+                Threading...
+              </>
+            ) : (
+              <>🧵 Thread It</>
+            )}
           </button>
         </div>
 
@@ -503,14 +585,339 @@ export default function App() {
 
   // Show thread page
   if (currentView === 'thread') {
-    return <FinalDesign 
-      designData={{ 
-        designName: `${selectedGarment?.name} Custom Design`,
-        originalGarment: selectedGarment,
-        createdAt: new Date().toISOString()
-      }}
-      onBack={() => setCurrentView('design')}
-    />
+    const handleLaunchIt = async () => {
+      try {
+        console.log("Launching product to Shopify...")
+        const response = await fetch('http://localhost:3001/add-product', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          alert(`✅ Product added to waitlist successfully!\nTitle: ${data.aiDetails?.title || 'ThreadSketch Design'}\nCustomers can now sign up for updates!`)
+          console.log("Product created:", data.product)
+          console.log("AI-generated details:", data.aiDetails)
+        } else {
+          alert(`❌ Failed to add product: ${data.error}`)
+          console.error("Error:", data.error)
+        }
+      } catch (error) {
+        alert(`❌ Error connecting to server: ${error.message}`)
+        console.error("Network error:", error)
+      }
+    }
+
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "#1a1a1a",
+        color: "white",
+        fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        padding: "20px",
+      }}>
+        <button
+          onClick={() => setCurrentView('templates')}
+          style={{
+            position: "absolute",
+            top: "20px",
+            left: "20px",
+            background: "#333",
+            color: "white",
+            border: "1px solid #555",
+            borderRadius: "8px",
+            padding: "10px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
+          }}
+        >
+          ← Back
+        </button>
+        
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          maxWidth: "800px",
+          width: "100%",
+        }}>
+          <h1 style={{
+            fontSize: "32px",
+            margin: "0 0 30px 0",
+            textAlign: "center",
+          }}>
+            AI Design Preview
+          </h1>
+
+          <div style={{
+            background: "#2a2a2a",
+            border: "2px solid #444",
+            borderRadius: "12px",
+            padding: "20px",
+            marginBottom: "30px",
+            maxWidth: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "400px",
+          }}>
+            <img
+              src="/output.png"
+              alt="AI Generated Design"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "600px",
+                objectFit: "contain",
+                borderRadius: "8px",
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none'
+                e.target.nextSibling.style.display = 'block'
+              }}
+            />
+            <div style={{
+              display: "none",
+              color: "#666",
+              textAlign: "center",
+              fontSize: "16px",
+            }}>
+              📸 No design image found<br/>
+              <small>output.png will appear here when generated</small>
+            </div>
+          </div>
+
+          <p style={{
+            color: "#ccc",
+            textAlign: "center",
+            marginBottom: "20px",
+            fontSize: "16px",
+            lineHeight: "1.5",
+          }}>
+            This design will be added to your waitlist. Customers can sign up to be notified when it becomes available.
+          </p>
+        </div>
+
+        <button
+          onClick={handleLaunchIt}
+          style={{
+            position: "absolute",
+            bottom: "40px",
+            background: "#95BF47",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "16px 32px",
+            cursor: "pointer",
+            fontSize: "16px",
+            fontWeight: "600",
+            transition: "background-color 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = "#7DA93F"
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = "#95BF47"
+          }}
+        >
+          Launch It
+        </button>
+      </div>
+    )
+  }
+
+  // Show preview page
+  if (currentView === 'preview') {
+    // Redirect to templates if no preview URL
+    if (!previewUrl) {
+      setCurrentView('templates')
+      return null
+    }
+
+    const handleLaunchToShopify = async () => {
+      try {
+        console.log("Launching enhanced product to Shopify...")
+        const response = await fetch('http://localhost:3001/add-product', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          alert(`✅ Enhanced product added to waitlist!\nTitle: ${data.aiDetails?.title || 'ThreadSketch Design'}\nCustomers can now sign up for updates!`)
+          console.log("Product created:", data.product)
+          console.log("AI-generated details:", data.aiDetails)
+          
+          // Clear preview and return to templates
+          setPreviewUrl(null)
+          setCurrentView('templates')
+        } else {
+          alert(`❌ Failed to add product: ${data.error}`)
+          console.error("Error:", data.error)
+        }
+      } catch (error) {
+        alert(`❌ Error connecting to server: ${error.message}`)
+        console.error("Network error:", error)
+      }
+    }
+
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "#1a1a1a",
+        color: "white",
+        fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        padding: "20px",
+      }}>
+        <button
+          onClick={() => {
+            setPreviewUrl(null)
+            setCurrentView('templates')
+          }}
+          style={{
+            position: "absolute",
+            top: "20px",
+            left: "20px",
+            background: "#333",
+            color: "white",
+            border: "1px solid #555",
+            borderRadius: "8px",
+            padding: "10px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
+          }}
+        >
+          ← Back to Templates
+        </button>
+        
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          maxWidth: "900px",
+          width: "100%",
+        }}>
+          <h1 style={{
+            fontSize: "32px",
+            margin: "0 0 30px 0",
+            textAlign: "center",
+          }}>
+            ✨ AI Enhanced Design
+          </h1>
+
+          <div style={{
+            background: "#2a2a2a",
+            border: "2px solid #444",
+            borderRadius: "12px",
+            padding: "30px",
+            marginBottom: "30px",
+            maxWidth: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "500px",
+          }}>
+            <img
+              src={previewUrl}
+              alt="AI Enhanced Design"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "700px",
+                objectFit: "contain",
+                borderRadius: "8px",
+                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+              }}
+              onError={(e) => {
+                console.error('Failed to load preview image:', previewUrl)
+                e.target.style.display = 'none'
+                e.target.nextSibling.style.display = 'block'
+              }}
+            />
+            <div style={{
+              display: "none",
+              color: "#666",
+              textAlign: "center",
+              fontSize: "16px",
+            }}>
+              ❌ Failed to load enhanced image<br/>
+              <small>Please try again</small>
+            </div>
+          </div>
+
+          <p style={{
+            color: "#ccc",
+            textAlign: "center",
+            marginBottom: "30px",
+            fontSize: "16px",
+            lineHeight: "1.5",
+            maxWidth: "600px",
+          }}>
+            Your design has been enhanced with AI! This professional product image is ready to be launched to your Shopify store as a waitlist item.
+          </p>
+
+          <div style={{
+            display: "flex",
+            gap: "20px",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}>
+            <button
+              onClick={() => setCurrentView('design')}
+              style={{
+                background: "#6b7280",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                padding: "12px 24px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              ← Back to Design
+            </button>
+
+            <button
+              onClick={handleLaunchToShopify}
+              style={{
+                background: "#95BF47",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                padding: "16px 32px",
+                cursor: "pointer",
+                fontSize: "16px",
+                fontWeight: "600",
+                transition: "background-color 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = "#7DA93F"
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = "#95BF47"
+              }}
+            >
+              🚀 Launch to Shopify
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Show garment selector with navigation
