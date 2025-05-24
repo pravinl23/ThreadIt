@@ -1,24 +1,26 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Tldraw } from "tldraw"
+import { Tldraw, createShapeId, AssetRecordType } from "tldraw"
 import { GarmentSelector } from "./components/GarmentSelector"
 import "./App.css"
 
 export default function App() {
   const [selectedGarment, setSelectedGarment] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const tldrawRef = useRef(null)
+  const templateLoadedRef = useRef(false)
 
   // Debug logging
   useEffect(() => {
     console.log("App: selectedGarment changed to:", selectedGarment?.name || "null")
+    // Reset template loaded flag when garment changes
+    templateLoadedRef.current = false
   }, [selectedGarment])
 
   const handleGarmentSelect = useCallback((garment) => {
     console.log("App: Garment selection started:", garment.name)
     setIsLoading(true)
-
+    
     // Small delay to ensure state is properly set before rendering TLDraw
     setTimeout(() => {
       console.log("App: Setting selectedGarment to:", garment.name)
@@ -33,37 +35,79 @@ export default function App() {
     setIsLoading(false)
   }, [])
 
-  // Continuously enforce transparency
-  useEffect(() => {
-    if (!selectedGarment) return
+  // Add garment template to canvas when TLDraw mounts
+  const handleTLDrawMount = useCallback((editor) => {
+    if (!selectedGarment || templateLoadedRef.current) return;
 
-    const enforceTransparency = () => {
-      // Target multiple possible TLDraw background elements
-      const selectors = [
-        '[data-testid="canvas"]',
-        ".tl-svg-container",
-        ".tldraw canvas",
-        ".tldraw > div",
-        ".tldraw",
-        '[class*="tl-background"]',
-      ]
+    console.log('Attempting to load garment image:', selectedGarment.image)
+    templateLoadedRef.current = true
 
-      selectors.forEach((selector) => {
-        const elements = document.querySelectorAll(selector)
-        elements.forEach((el) => {
-          if (el) {
-            el.style.backgroundColor = "transparent"
-            el.style.background = "transparent"
+    // Load image asynchronously but don't make the callback async
+    const loadGarmentTemplate = async () => {
+      try {
+        // Load image to get dimensions
+        const img = new Image()
+        await new Promise((resolve, reject) => {
+          img.onload = resolve
+          img.onerror = reject
+          img.src = selectedGarment.image
+        })
+
+        console.log('Image loaded, size:', img.width, img.height)
+
+        // Calculate scaled dimensions to fit in view
+        const maxSize = 600
+        const scale = Math.min(maxSize / img.width, maxSize / img.height)
+        const scaledWidth = img.width * scale
+        const scaledHeight = img.height * scale
+
+        // Create asset first
+        const assetId = AssetRecordType.createId()
+        
+        console.log('Creating asset with ID:', assetId)
+        editor.createAssets([{
+          id: assetId,
+          type: 'image',
+          typeName: 'asset',
+          props: {
+            name: selectedGarment.name + '.png',
+            src: selectedGarment.image,
+            w: img.width,
+            h: img.height,
+            mimeType: 'image/png',
+            isAnimated: false,
+          },
+          meta: {},
+        }])
+
+        // Create the shape with the asset reference
+        const shapeId = createShapeId('garment-template')
+        
+        console.log('Creating image shape with asset reference...')
+        editor.createShape({
+          id: shapeId,
+          type: 'image',
+          x: -scaledWidth / 2, // Center horizontally
+          y: -scaledHeight / 2, // Center vertically
+          opacity: 0.4,
+          isLocked: true,
+          props: {
+            assetId,
+            w: scaledWidth,
+            h: scaledHeight
           }
         })
-      })
+
+        editor.sendToBack([shapeId])
+        editor.zoomToFit()
+        console.log('Garment template added as shape with asset reference')
+      } catch (error) {
+        console.error('Failed to load garment image:', error)
+      }
     }
 
-    // Run immediately and then on an interval
-    const interval = setInterval(enforceTransparency, 100)
-    enforceTransparency()
-
-    return () => clearInterval(interval)
+    // Call the async function but don't await it
+    loadGarmentTemplate()
   }, [selectedGarment])
 
   console.log("App: Rendering - selectedGarment:", selectedGarment?.name || "none", "isLoading:", isLoading)
@@ -80,7 +124,7 @@ export default function App() {
           alignItems: "center",
           justifyContent: "center",
           color: "white",
-          fontFamily: "IBM Plex Mono, monospace",
+          fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
         }}
       >
         Loading canvas...
@@ -88,56 +132,15 @@ export default function App() {
     )
   }
 
-  // Show garment selector - update the return statement
-  if (!selectedGarment) {
-    // Return the GarmentSelector without any fixed positioning wrappers
-    return <GarmentSelector onGarmentSelect={handleGarmentSelect} />
-  }
-
   // Show TLDraw with template
   if (selectedGarment) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "#ffffff" }}>
-        {/* TLDraw - base layer */}
-        <div ref={tldrawRef} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }}>
-          <Tldraw
-            persistenceKey={`ThreadSketch-${selectedGarment.id}`}
-            onMount={() => {
-              console.log("TLDraw mounted for:", selectedGarment.name)
-            }}
-          />
-        </div>
-
-        {/* Garment template overlay - on top but non-interactive */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
-            zIndex: 2,
-          }}
-        >
-          <img
-            src={selectedGarment.image || "/placeholder.svg"}
-            alt={selectedGarment.name}
-            style={{
-              maxWidth: "70%",
-              maxHeight: "70%",
-              objectFit: "contain",
-              opacity: 0.15,
-              filter: "contrast(0.8) brightness(0.8)",
-              pointerEvents: "none",
-            }}
-            onLoad={() => console.log("Template overlay loaded:", selectedGarment.name)}
-            onError={() => console.log("Template overlay failed to load:", selectedGarment.name)}
-          />
-        </div>
+        {/* TLDraw with garment template added as a shape */}
+        <Tldraw
+          persistenceKey={`ThreadSketch-${selectedGarment.id}`}
+          onMount={handleTLDrawMount}
+        />
 
         {/* Back button */}
         <button
@@ -153,7 +156,7 @@ export default function App() {
             borderRadius: "8px",
             padding: "10px 16px",
             cursor: "pointer",
-            fontFamily: "IBM Plex Mono, monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
             fontSize: "14px",
             fontWeight: "500",
           }}
@@ -180,7 +183,7 @@ export default function App() {
             borderRadius: "20px",
             fontSize: "14px",
             fontWeight: "600",
-            fontFamily: "IBM Plex Mono, monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
           }}
         >
           {selectedGarment.name}
@@ -188,4 +191,7 @@ export default function App() {
       </div>
     )
   }
+
+  // Show garment selector
+  return <GarmentSelector onGarmentSelect={handleGarmentSelect} />
 }
