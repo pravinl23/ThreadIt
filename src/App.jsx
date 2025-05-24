@@ -14,6 +14,7 @@ export default function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [currentEditor, setCurrentEditor] = useState(null)
+  const [sessionId, setSessionId] = useState(null) // For unique persistence key
   const templateLoadedRef = useRef(false)
   const initialCanvasStateRef = useRef(null)
 
@@ -46,10 +47,26 @@ export default function App() {
     console.log("App: Garment selection started:", garment.name)
     setIsLoading(true)
     
+    // Ensure garment has a consistent id format
+    const garmentWithId = {
+      ...garment,
+      id: garment.id || garment.name.toLowerCase().replace(/\s+/g, '-')
+    }
+    
+    // Generate a unique session ID to ensure fresh start
+    const newSessionId = Date.now().toString()
+    
+    // Always clear persistence for fresh start when selecting a garment
+    // Use the exact same key format as the TLDraw persistenceKey
+    const persistenceKey = `ThreadSketch-${garmentWithId.id}`
+    console.log("Clearing localStorage for key:", persistenceKey)
+    localStorage.removeItem(persistenceKey)
+    
     // Small delay to ensure state is properly set before rendering TLDraw
     setTimeout(() => {
-      console.log("App: Setting selectedGarment to:", garment.name)
-      setSelectedGarment(garment)
+      console.log("App: Setting selectedGarment to:", garmentWithId.name)
+      setSelectedGarment(garmentWithId)
+      setSessionId(newSessionId)
       setCurrentView('design')
       setIsLoading(false)
     }, 100)
@@ -57,21 +74,17 @@ export default function App() {
 
   const handleBackToTemplates = useCallback(() => {
     console.log("App: Going back to templates")
-    if (hasUnsavedChanges) {
-      setShowSaveDialog(true)
-    } else {
-      setSelectedGarment(null)
-      setCurrentView('templates')
-      setIsLoading(false)
-    }
-  }, [hasUnsavedChanges])
+    // Always show save dialog when going back, regardless of unsaved changes
+    setShowSaveDialog(true)
+  }, [])
 
   const handleDiscardChanges = useCallback(() => {
     console.log("App: Discarding changes")
     // Clear the canvas by reloading without persistence
-    const garmentId = selectedGarment?.id
-    if (garmentId) {
-      localStorage.removeItem(`ThreadSketch-${garmentId}`)
+    if (selectedGarment?.id) {
+      const persistenceKey = `ThreadSketch-${selectedGarment.id}`
+      console.log("Clearing localStorage for key:", persistenceKey)
+      localStorage.removeItem(persistenceKey)
     }
     setShowSaveDialog(false)
     setSelectedGarment(null)
@@ -131,11 +144,15 @@ export default function App() {
       image: design.garmentImage
     }
     
-    // Clear any existing persistence for this garment to load fresh
+    // Generate a unique session ID for this saved design view
+    const newSessionId = `saved-${design.id}-${Date.now()}`
+    
+    // Always clear persistence for fresh start when going off and back on
     localStorage.removeItem(`ThreadSketch-${garment.id}`)
     
     // Set the garment and switch to design view
     setSelectedGarment(garment)
+    setSessionId(newSessionId)
     setCurrentView('design')
     
     // Store the design snapshot to load when editor mounts
@@ -302,7 +319,7 @@ export default function App() {
       <div style={{ position: "fixed", inset: 0, background: "#ffffff" }}>
         {/* TLDraw with garment template added as a shape */}
         <Tldraw
-          persistenceKey={`ThreadSketch-${selectedGarment.id}`}
+          persistenceKey={sessionId ? `ThreadSketch-${sessionId}` : `ThreadSketch-${selectedGarment.id}`}
           onMount={handleTLDrawMount}
         />
 
@@ -387,9 +404,9 @@ export default function App() {
               textAlign: "center",
               maxWidth: "400px",
             }}>
-              <h3 style={{ marginBottom: "20px", fontSize: "18px" }}>Unsaved Changes</h3>
+              <h3 style={{ marginBottom: "20px", fontSize: "18px" }}>Save Before Leaving?</h3>
               <p style={{ marginBottom: "30px", color: "#ccc", lineHeight: "1.5" }}>
-                You have unsaved changes to your design. What would you like to do?
+                Would you like to save your current design before returning to templates?
               </p>
               <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
                 <button
@@ -420,7 +437,7 @@ export default function App() {
                     fontWeight: "500",
                   }}
                 >
-                  🗑️ Discard
+                  🚪 Exit Without Saving
                 </button>
                 <button
                   onClick={() => setShowSaveDialog(false)}
