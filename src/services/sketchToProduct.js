@@ -11,6 +11,7 @@ dotenv.config();
 const API_URL = "https://api.stability.ai";
 const ENGINE_ID = "stable-diffusion-xl-1024-v1-0";
 
+//hijefie
 /**
  * Ensures the required directories exist
  * @param {string} dirPath - Path to check/create
