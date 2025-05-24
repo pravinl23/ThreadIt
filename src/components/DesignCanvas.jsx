@@ -22,7 +22,7 @@ export function DesignCanvas({ selectedGarment, activeView, onCanvasReady }) {
   }
 
   const templateImage = selectedGarment.image
-  const persistenceKey = `ThreadSketch-${selectedGarment.id}-${activeView}`
+  const persistenceKey = `ThreadIt-${selectedGarment.id}-${activeView}`
 
   return (
     <div className="design-canvas">

@@ -1,4 +1,4 @@
-# ThreadSketch 🎨👕
+# ThreadIt 🎨👕
 
 A powerful clothing design application that lets you sketch, enhance, and transform garment designs using AI-powered tools.
 
@@ -41,7 +41,7 @@ A powerful clothing design application that lets you sketch, enhance, and transf
 1. Clone the repository:
 ```bash
 git clone <your-repo-url>
-cd ThreadSketch
+cd ThreadIt
 ```
 
 2. Install dependencies:
@@ -119,7 +119,7 @@ The app uses Zustand for clean, performant state management:
 ## 📁 Project Structure
 
 ```
-ThreadSketch/
+ThreadIt/
 ├── public/
 │   └── assets/
 │       └── clothes/           # Garment template images
@@ -138,7 +138,7 @@ ThreadSketch/
 
 ## 🎨 Design Philosophy
 
-ThreadSketch is built with a focus on:
+ThreadIt is built with a focus on:
 - **Intuitive Workflow** - Natural progression from template to finished design
 - **Professional Tools** - Industry-grade drawing capabilities
 - **Modern UX** - Smooth animations and responsive design  
@@ -160,4 +160,4 @@ ThreadSketch is built with a focus on:
 
 ---
 
-**Built for the hackathon with ❤️ by the ThreadSketch team**
+**Built for the hackathon with ❤️ by the ThreadIt team**

@@ -198,7 +198,7 @@ export async function enhanceProduct(inputPath, outputPath) {
       max_tokens: 300,
       messages: [{
         role: "user",
-        content: "Generate creative enhancement ideas for a ThreadSketch design. Return a JSON object with color suggestions, style improvements, and visual effects that could be applied."
+        content: "Generate creative enhancement ideas for a ThreadIt design. Return a JSON object with color suggestions, style improvements, and visual effects that could be applied."
       }]
     })
     

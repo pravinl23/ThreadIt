@@ -24,8 +24,8 @@ export function FinalDesign({ designData, onBack }) {
       
       // Update progress to show theme installation
       setTimeout(() => {
-        setProgress('🎨 Installing ThreadSketch theme...')
-        addStatusUpdate('🎨 Installing custom ThreadSketch theme...')
+        setProgress('🎨 Installing ThreadIt theme...')
+        addStatusUpdate('🎨 Installing custom ThreadIt theme...')
       }, 1000)
       
       setTimeout(() => {
@@ -66,7 +66,7 @@ export function FinalDesign({ designData, onBack }) {
           addStatusUpdate(`⚠️ Theme installation had issues: ${data.theme.error}`)
         }
         
-        addStatusUpdate(`🎯 Product: ${data.aiDetails?.title || 'ThreadSketch Design'}`)
+        addStatusUpdate(`🎯 Product: ${data.aiDetails?.title || 'ThreadIt Design'}`)
         addStatusUpdate('🎉 Launch completed successfully!')
         
         setLaunched(true)
@@ -188,43 +188,27 @@ export function FinalDesign({ designData, onBack }) {
             border: "1px solid #333",
             position: "relative",
           }}>
-            {/* T-shirt mockups - front and back */}
+            {/* Enhanced design display */}
             <div style={{
               display: "flex",
-              gap: "60px",
               alignItems: "center",
               justifyContent: "center",
-              flexWrap: "wrap",
             }}>
-              {/* Front view */}
+              {/* Single enhanced image */}
               <div style={{ textAlign: "center" }}>
                 <img
                   src={enhancedImageUrl}
-                  alt="T-Shirt Front Design"
+                  alt="AI Enhanced Design"
                   style={{
-                    width: "280px",
-                    height: "280px",
+                    maxWidth: "400px",
+                    maxHeight: "400px",
                     objectFit: "contain",
                     borderRadius: "8px",
                     background: "#333",
+                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
                   }}
                   onError={(e) => {
                     console.error('Failed to load enhanced image:', enhancedImageUrl)
-                  }}
-                />
-              </div>
-              
-              {/* Back view */}
-              <div style={{ textAlign: "center" }}>
-                <img
-                  src={enhancedImageUrl}
-                  alt="T-Shirt Back Design"
-                  style={{
-                    width: "280px",
-                    height: "280px",
-                    objectFit: "contain",
-                    borderRadius: "8px",
-                    background: "#333",
                   }}
                 />
               </div>
@@ -241,21 +225,21 @@ export function FinalDesign({ designData, onBack }) {
                 marginBottom: "8px",
                 color: "#fff",
               }}>
-                T-Shirt Design
+                AI Enhanced Design
               </h3>
               <p style={{ 
                 fontSize: "14px", 
                 margin: "0 0 5px 0",
                 color: "#ccc",
               }}>
-                Garment: T-Shirt
+                Created with ThreadIt
               </p>
               <p style={{ 
                 fontSize: "12px", 
                 margin: "0",
                 color: "#999",
               }}>
-                Created: {new Date().toLocaleDateString()}
+                Enhanced: {new Date().toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -311,7 +295,7 @@ export function FinalDesign({ designData, onBack }) {
                 }}>
                   <li style={{ marginBottom: "15px", display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <span style={{ color: "#10b981", fontSize: "10px", marginTop: "6px" }}>●</span>
-                    <span>Custom ThreadSketch product with premium variants</span>
+                    <span>Custom ThreadIt product with premium variants</span>
                   </li>
                   <li style={{ marginBottom: "15px", display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <span style={{ color: "#3b82f6", fontSize: "10px", marginTop: "6px" }}>●</span>
@@ -331,7 +315,7 @@ export function FinalDesign({ designData, onBack }) {
                   </li>
                   <li style={{ marginBottom: "0", display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <span style={{ color: "#06b6d4", fontSize: "10px", marginTop: "6px" }}>●</span>
-                    <span>ThreadSketch branding throughout</span>
+                    <span>ThreadIt branding throughout</span>
                   </li>
                 </ul>
               </div>

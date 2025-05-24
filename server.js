@@ -95,21 +95,17 @@ async function generateProductDetails() {
       max_tokens: 500,
       messages: [{
         role: "user",
-        content: `Generate a simple product name and short description for a custom designed garment created with ThreadSketch.
+        content: `Generate a creative product name and description for a custom ThreadIt design. This is for a unique garment created by a user using our design app.
 
-Keep it simple and include:
-- A catchy product name
-- Short description (2-3 sentences max)
-- Mention it was "Created in ThreadSketch"
-- Add "Coming Soon" messaging
+Create a catchy, creative product name that suggests uniqueness and style. Use words that suggest creativity, art, or fashion (e.g., "Neon Nights Bomber", "Cosmic Dreams Tee", "Midnight Canvas Hoodie", "Electric Vibes Tank").
 
-Return a JSON object with: title, description (plain text, not HTML), tags (array).
+Return ONLY a valid JSON object with title, description, and tags. No extra text.
 
-Example:
+Example format:
 {
-  "title": "Urban Sketch Tee",
-  "description": "Custom designed t-shirt created in ThreadSketch. This unique piece features your personal design. Coming soon - join the waitlist!",
-  "tags": ["ThreadSketch", "custom", "coming-soon"]
+  "title": "Neon Nights Bomber",
+  "description": "A one-of-a-kind design created with ThreadIt's creative tools. This unique piece showcases artistic expression and personal style.",
+  "tags": ["ThreadIt", "custom-design", "unique", "artistic", "limited-edition"]
 }`
       }]
     })
@@ -121,60 +117,65 @@ Example:
     const jsonMatch = content.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const productDetails = JSON.parse(jsonMatch[0])
-      // Add waitlist HTML to description
-      productDetails.description = `
-        <p>${productDetails.description}</p>
-        <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #28a745;">
-          <h4 style="margin-top: 0; color: #28a745;">🎯 Join the Waitlist</h4>
-          <p style="margin-bottom: 15px;">This item is currently out of stock. Enter your email below to be notified when it becomes available:</p>
-          <form action="/contact" method="post" style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <input type="hidden" name="form_type" value="customer">
-            <input type="hidden" name="tags" value="waitlist,threadsketch">
-            <input type="email" name="contact[email]" placeholder="your@email.com" required style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-            <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Notify Me</button>
-          </form>
-        </div>
-      `
-      return productDetails
-    } else {
-      // Fallback if JSON parsing fails
-      return {
-        title: "Custom ThreadSketch Design",
-        description: `
-          <p>Unique design created in ThreadSketch. Coming soon - join the waitlist to be notified when this drops!</p>
+      
+      // Ensure we have required fields
+      if (productDetails.title && productDetails.description) {
+        // Add waitlist HTML to description
+        productDetails.description = `
+          <p>${productDetails.description}</p>
           <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #28a745;">
             <h4 style="margin-top: 0; color: #28a745;">🎯 Join the Waitlist</h4>
             <p style="margin-bottom: 15px;">This item is currently out of stock. Enter your email below to be notified when it becomes available:</p>
             <form action="/contact" method="post" style="display: flex; gap: 10px; flex-wrap: wrap;">
               <input type="hidden" name="form_type" value="customer">
-              <input type="hidden" name="tags" value="waitlist,threadsketch">
+              <input type="hidden" name="tags" value="waitlist,threadit">
               <input type="email" name="contact[email]" placeholder="your@email.com" required style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
               <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Notify Me</button>
             </form>
           </div>
-        `,
-        tags: ["ThreadSketch", "custom", "coming-soon"]
+        `
+        
+        // Ensure tags exist and include ThreadIt tags
+        if (!productDetails.tags || !Array.isArray(productDetails.tags)) {
+          productDetails.tags = ["ThreadIt", "custom", "coming-soon"]
+        } else {
+          // Add ThreadIt tags if not present
+          if (!productDetails.tags.includes("ThreadIt")) {
+            productDetails.tags.push("ThreadIt")
+          }
+          if (!productDetails.tags.includes("custom")) {
+            productDetails.tags.push("custom")
+          }
+        }
+        
+        console.log('✅ Successfully parsed Claude response:', productDetails.title)
+        return productDetails
       }
     }
+    
+    // If we get here, JSON parsing failed or missing required fields
+    console.warn('⚠️ Claude JSON parsing failed, using fallback')
+    throw new Error('Invalid JSON response from Claude')
+    
   } catch (error) {
     console.error('❌ Claude API error:', error)
     // Fallback product details
     return {
-      title: "Custom ThreadSketch Design",
+      title: "Custom ThreadIt Design",
       description: `
-        <p>Unique design created in ThreadSketch. Coming soon - join the waitlist to be notified when this drops!</p>
+        <p>Unique design created in ThreadIt. Coming soon - join the waitlist to be notified when this drops!</p>
         <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #28a745;">
           <h4 style="margin-top: 0; color: #28a745;">🎯 Join the Waitlist</h4>
           <p style="margin-bottom: 15px;">This item is currently out of stock. Enter your email below to be notified when it becomes available:</p>
           <form action="/contact" method="post" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <input type="hidden" name="form_type" value="customer">
-            <input type="hidden" name="tags" value="waitlist,threadsketch">
+            <input type="hidden" name="tags" value="waitlist,threadit">
             <input type="email" name="contact[email]" placeholder="your@email.com" required style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
             <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Notify Me</button>
           </form>
         </div>
       `,
-      tags: ["ThreadSketch", "custom", "coming-soon"]
+      tags: ["ThreadIt", "custom", "coming-soon"]
     }
   }
 }
@@ -211,7 +212,7 @@ async function uploadImageToShopify(productId) {
         image: {
           attachment: base64Image,
           filename: 'thread-it-design.png',
-          alt: 'Custom ThreadSketch Design'
+          alt: 'Custom ThreadIt Design'
         }
       })
     })
@@ -307,7 +308,7 @@ async function installShopifyTheme() {
   try {
     const PUBLIC_THEME_URL = 'https://fc931dfc-913f-4742-8668-3e1b778553d1-00-29zxc3l7r8rth.picard.replit.dev/theme.zip'
 
-    console.log('🎨 Installing ThreadSketch theme via public URL...')
+    console.log('🎨 Installing ThreadIt theme via public URL...')
 
     // 1. Create the theme using the public ZIP URL
     const themeResp = await fetch(`https://${cleanShop}/admin/api/2023-10/themes.json`, {
@@ -318,7 +319,7 @@ async function installShopifyTheme() {
       },
       body: JSON.stringify({
         theme: {
-          name: `ThreadSketch Theme ${Date.now()}`,
+          name: `ThreadIt Theme ${Date.now()}`,
           src : PUBLIC_THEME_URL,
           role: 'unpublished' // Use 'main' if you want to publish immediately
         }
@@ -388,7 +389,7 @@ app.post('/install-theme', async (req, res) => {
       })
     }
 
-    console.log('🎨 Installing custom ThreadSketch theme...')
+    console.log('🎨 Installing custom ThreadIt theme...')
     const themeResult = await installShopifyTheme()
     
     if (themeResult.success) {
@@ -425,7 +426,7 @@ app.post('/add-product', async (req, res) => {
     console.log('🤖 Generating product details with AI...')
     const productDetails = await generateProductDetails()
 
-    console.log('🎨 Installing ThreadSketch theme...')
+    console.log('🎨 Installing ThreadIt theme...')
     const themeResult = await installShopifyTheme()
     
     let publishedTheme = null;
@@ -455,14 +456,14 @@ app.post('/add-product', async (req, res) => {
         product: {
           title: productDetails.title,
           body_html: productDetails.description,
-          vendor: 'ThreadSketch',
+          vendor: 'ThreadIt',
           product_type: 'Custom Apparel',
           tags: productDetails.tags,
           status: 'active',
           variants: [
             {
-              price: '29.99',
-              sku: `TS-${Date.now()}`,
+              price: '0.00',
+              sku: `TI-${Date.now()}`,
               inventory_management: 'shopify',
               inventory_quantity: 0,
               inventory_policy: 'deny'

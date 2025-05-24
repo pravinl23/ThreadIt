@@ -54,7 +54,7 @@ export function GarmentSelector({ onGarmentSelect }) {
     <div className="selector-page">
       <div className="selector-content">
         <header className="selector-header">
-          <h1 className="selector-title">ThreadSketch</h1>
+          <h1 className="selector-title">ThreadIt</h1>
           <div className="title-underline"></div>
           <p className="selector-subtitle">Choose a garment to start designing</p>
         </header>

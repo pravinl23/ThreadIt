@@ -43,7 +43,7 @@ export async function generateProduct(inputPath, outputPath) {
     const imageFile = new File([resizedBuffer], 'sketch.png', { type: 'image/png' })
     formData.append('init_image', imageFile)
     
-    // Optimized prompts for ThreadSketch designs
+    // Optimized prompts for ThreadIt designs
     const textPrompts = [
       {
         text: "A creative and artistic product photo of a t-shirt. The t-shirt is displayed on a pure white background. Take the design elements and interpret them artistically - add depth, dimension, and creative flair while keeping the core concept. Premium screen print with artistic interpretation, creative details, and professional finish. Natural cotton fabric texture. Clean product template for e-commerce.",
@@ -108,7 +108,7 @@ export async function enhanceProduct(inputPath, outputPath) {
       max_tokens: 500,
       messages: [{
         role: "user",
-        content: `Analyze this ThreadSketch design and suggest creative enhancements that would make it more appealing as a product. Focus on:
+        content: `Analyze this ThreadIt design and suggest creative enhancements that would make it more appealing as a product. Focus on:
         1. Color palette improvements
         2. Visual effects that could be added
         3. Style refinements

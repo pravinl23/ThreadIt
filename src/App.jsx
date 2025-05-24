@@ -33,7 +33,7 @@ export default function App() {
 
   // Load saved designs from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('threadsketch-saved-designs')
+    const saved = localStorage.getItem('threadit-saved-designs')
     if (saved) {
       try {
         setSavedDesigns(JSON.parse(saved))
@@ -45,7 +45,7 @@ export default function App() {
 
   // Save designs to localStorage whenever savedDesigns changes
   useEffect(() => {
-    localStorage.setItem('threadsketch-saved-designs', JSON.stringify(savedDesigns))
+    localStorage.setItem('threadit-saved-designs', JSON.stringify(savedDesigns))
   }, [savedDesigns])
 
   const handleGarmentSelect = useCallback((garment) => {
@@ -63,7 +63,7 @@ export default function App() {
     
     // Always clear persistence for fresh start when selecting a garment
     // Use the exact same key format as the TLDraw persistenceKey
-    const persistenceKey = `ThreadSketch-${garmentWithId.id}`
+    const persistenceKey = `ThreadIt-${garmentWithId.id}`
     console.log("Clearing localStorage for key:", persistenceKey)
     localStorage.removeItem(persistenceKey)
     
@@ -87,7 +87,7 @@ export default function App() {
     console.log("App: Discarding changes")
     // Clear the canvas by reloading without persistence
     if (selectedGarment?.id) {
-      const persistenceKey = `ThreadSketch-${selectedGarment.id}`
+      const persistenceKey = `ThreadIt-${selectedGarment.id}`
       console.log("Clearing localStorage for key:", persistenceKey)
       localStorage.removeItem(persistenceKey)
     }
@@ -153,7 +153,7 @@ export default function App() {
     const newSessionId = `saved-${design.id}-${Date.now()}`
     
     // Always clear persistence for fresh start when going off and back on
-    localStorage.removeItem(`ThreadSketch-${garment.id}`)
+    localStorage.removeItem(`ThreadIt-${garment.id}`)
     
     // Set the garment and switch to design view
     setSelectedGarment(garment)
@@ -161,7 +161,7 @@ export default function App() {
     setCurrentView('design')
     
     // Store the design snapshot to load when editor mounts
-    window.threadSketchDesignToLoad = design.snapshot
+    window.threadItDesignToLoad = design.snapshot
   }, [])
 
   // Add garment template to canvas when TLDraw mounts
@@ -244,12 +244,12 @@ export default function App() {
     setCurrentEditor(editor)
 
     // Check if we need to load a saved design
-    if (window.threadSketchDesignToLoad) {
+    if (window.threadItDesignToLoad) {
       console.log("Loading saved design snapshot...")
       try {
-        editor.loadSnapshot(window.threadSketchDesignToLoad)
+        editor.loadSnapshot(window.threadItDesignToLoad)
         setHasUnsavedChanges(false)
-        window.threadSketchDesignToLoad = null // Clear it
+        window.threadItDesignToLoad = null // Clear it
         console.log("Saved design loaded successfully")
         
         // Store initial state for change detection
@@ -324,7 +324,7 @@ export default function App() {
       <div style={{ position: "fixed", inset: 0, background: "#ffffff" }}>
         {/* TLDraw with garment template added as a shape */}
         <Tldraw
-          persistenceKey={sessionId ? `ThreadSketch-${sessionId}` : `ThreadSketch-${selectedGarment.id}`}
+          persistenceKey={sessionId ? `ThreadIt-${sessionId}` : `ThreadIt-${selectedGarment.id}`}
           onMount={handleTLDrawMount}
         />
 
@@ -598,7 +598,7 @@ export default function App() {
         const data = await response.json()
 
         if (response.ok) {
-          alert(`✅ Product added to waitlist successfully!\nTitle: ${data.aiDetails?.title || 'ThreadSketch Design'}\nCustomers can now sign up for updates!`)
+          alert(`✅ Product added to waitlist successfully!\nTitle: ${data.aiDetails?.title || 'ThreadIt Design'}\nCustomers can now sign up for updates!`)
           console.log("Product created:", data.product)
           console.log("AI-generated details:", data.aiDetails)
         } else {
@@ -775,7 +775,7 @@ export default function App() {
           color: "white",
           fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
         }}>
-          ThreadSketch
+          ThreadIt
         </div>
         
         <button
