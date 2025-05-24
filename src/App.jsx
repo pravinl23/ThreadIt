@@ -379,9 +379,34 @@ export default function App() {
           >
             💾 Save Design
           </button>
+
+          {/* Thread It button */}
+          <button
+            onClick={() => {
+              console.log("hi")
+            }}
+            style={{
+              background: "#0ea5e9",
+              color: "white",
+              border: "1px solid #555",
+              borderRadius: "8px",
+              padding: "10px 16px",
+              cursor: "pointer",
+              fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+              fontSize: "14px",
+              fontWeight: "300",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#0284c7"
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "#0ea5e9"
+            }}
+            title="Thread It - Coming soon!"
+          >
+            🧵 Thread It
+          </button>
         </div>
-
-
 
         {/* Save Dialog */}
         {showSaveDialog && (
