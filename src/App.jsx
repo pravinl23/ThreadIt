@@ -15,6 +15,7 @@ export default function App() {
   const [savedDesigns, setSavedDesigns] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const [currentEditor, setCurrentEditor] = useState(null)
   const [sessionId, setSessionId] = useState(null) // For unique persistence key
   const templateLoadedRef = useRef(false)
@@ -296,6 +297,66 @@ export default function App() {
     }
   }, [selectedGarment])
 
+  // Handle Thread It with user-provided credentials
+  const handleThreadItWithCredentials = async (storeUrl, apiKey) => {
+    try {
+      setIsThreading(true)
+      console.log('🚀 Thread It: Capturing canvas with user credentials...')
+
+      // Get all shapes on current page
+      const shapeIds = currentEditor.getCurrentPageShapeIds()
+      if (shapeIds.size === 0) {
+        throw new Error('No shapes on canvas')
+      }
+
+      // Capture canvas as PNG with white background and 2x scale  
+      const { blob } = await currentEditor.toImage([...shapeIds], {
+        format: 'png',
+        background: true,
+        scale: 2
+      })
+
+      if (!blob) {
+        throw new Error('Failed to capture canvas')
+      }
+
+      // Prepare form data with credentials
+      const formData = new FormData()
+      formData.append('image', blob, 'design.png')
+      formData.append('storeUrl', storeUrl)
+      formData.append('apiKey', apiKey)
+
+      console.log('📤 Sending to Thread It API with Shopify credentials...')
+
+      // Send to Thread It API
+      const response = await fetch('http://localhost:3001/api/thread-it', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        console.log('✅ Thread It success:', data.url)
+        // Construct full URL pointing to Express server
+        const fullImageUrl = `http://localhost:3001${data.url}`
+        setPreviewUrl(fullImageUrl)
+        // Store credentials for the final design launch
+        sessionStorage.setItem('shopify_store_url', storeUrl)
+        sessionStorage.setItem('shopify_api_key', apiKey)
+        setCurrentView('final')
+      } else {
+        throw new Error(data.error || 'Thread It failed')
+      }
+
+    } catch (error) {
+      console.error('❌ Thread It error:', error)
+      alert(`❌ Thread It failed: ${error.message}`)
+    } finally {
+      setIsThreading(false)
+    }
+  }
+
   console.log("App: Rendering - selectedGarment:", selectedGarment?.name || "none", "isLoading:", isLoading)
 
   // Show loading state briefly
@@ -387,63 +448,14 @@ export default function App() {
 
           {/* Thread It button */}
           <button
-            onClick={async () => {
+            onClick={() => {
               if (!currentEditor) {
                 alert('❌ Canvas not ready. Please try again.')
                 return
               }
 
-              try {
-                setIsThreading(true)
-                console.log('🚀 Thread It: Capturing canvas...')
-
-                // Get all shapes on current page
-                const shapeIds = currentEditor.getCurrentPageShapeIds()
-                if (shapeIds.size === 0) {
-                  throw new Error('No shapes on canvas')
-                }
-
-                // Capture canvas as PNG with white background and 2x scale  
-                const { blob } = await currentEditor.toImage([...shapeIds], {
-                  format: 'png',
-                  background: true,
-                  scale: 2
-                })
-
-                if (!blob) {
-                  throw new Error('Failed to capture canvas')
-                }
-
-                // Prepare form data
-                const formData = new FormData()
-                formData.append('image', blob, 'design.png')
-
-                console.log('📤 Sending to Thread It API...')
-
-                // Send to Thread It API
-                const response = await fetch('http://localhost:3001/api/thread-it', {
-                  method: 'POST',
-                  body: formData
-                })
-
-                const data = await response.json()
-
-                if (response.ok && data.success) {
-                  console.log('✅ Thread It success:', data.url)
-                  // Construct full URL pointing to Express server
-                  const fullImageUrl = `http://localhost:3001${data.url}`
-                  setPreviewUrl(fullImageUrl)
-                  setCurrentView('final')
-                } else {
-                  throw new Error(data.error || 'Thread It failed')
-                }
-
-              } catch (error) {
-                console.error('❌ Thread It error:', error)
-                alert(`❌ Thread It failed: ${error.message}`)
-              } finally {
-                setIsThreading(false)
-              }
+              // Show credentials modal instead of processing immediately
+              setShowCredentialsModal(true)
             }}
             disabled={isThreading}
             style={{
@@ -566,6 +578,162 @@ export default function App() {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Shopify Credentials Modal */}
+        {showCredentialsModal && (
+          <div style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+          }}>
+            <div style={{
+              background: "#1a1a1a",
+              color: "white",
+              padding: "30px",
+              borderRadius: "16px",
+              border: "1px solid #333",
+              fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+              maxWidth: "500px",
+              width: "90%",
+            }}>
+              <h3 style={{ marginBottom: "20px", fontSize: "18px", textAlign: "center" }}>
+                Connect Your Shopify Store
+              </h3>
+              <p style={{ marginBottom: "25px", color: "#ccc", lineHeight: "1.5", fontSize: "14px", textAlign: "center" }}>
+                Enter your Shopify store credentials to launch your ThreadIt design
+              </p>
+              
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                const formData = new FormData(e.target)
+                const storeUrl = formData.get('storeUrl').trim()
+                const apiKey = formData.get('apiKey').trim()
+                
+                if (!storeUrl || !apiKey) {
+                  alert('❌ Please fill in both fields')
+                  return
+                }
+                
+                // Validate store URL format
+                if (!storeUrl.includes('myshopify.com')) {
+                  alert('❌ Please enter a valid Shopify store URL (should contain "myshopify.com")')
+                  return
+                }
+                
+                // Validate API key format
+                if (!apiKey.startsWith('shpat_')) {
+                  alert('❌ Please enter a valid Shopify Admin API key (should start with "shpat_")')
+                  return
+                }
+                
+                setShowCredentialsModal(false)
+                await handleThreadItWithCredentials(storeUrl, apiKey)
+              }}>
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ 
+                    display: "block", 
+                    marginBottom: "8px", 
+                    fontSize: "14px", 
+                    color: "#10b981",
+                    fontWeight: "500"
+                  }}>
+                    Store URL
+                  </label>
+                  <input
+                    type="text"
+                    name="storeUrl"
+                    placeholder="https://your-store.myshopify.com"
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      background: "#2a2a2a",
+                      border: "1px solid #555",
+                      borderRadius: "8px",
+                      color: "white",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: "25px" }}>
+                  <label style={{ 
+                    display: "block", 
+                    marginBottom: "8px", 
+                    fontSize: "14px", 
+                    color: "#10b981",
+                    fontWeight: "500"
+                  }}>
+                    Admin API Key
+                  </label>
+                  <input
+                    type="password"
+                    name="apiKey"
+                    placeholder="shpat_••••••••••••••••••••••••••••••••"
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      background: "#2a2a2a",
+                      border: "1px solid #555",
+                      borderRadius: "8px",
+                      color: "white",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <p style={{ 
+                    fontSize: "11px", 
+                    color: "#999", 
+                    marginTop: "5px",
+                    lineHeight: "1.4"
+                  }}>
+                    Generate this in your Shopify admin: Settings → Apps → Develop apps
+                  </p>
+                </div>
+                
+                <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowCredentialsModal(false)}
+                    style={{
+                      background: "#6b7280",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "12px 24px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      background: "#10b981",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "12px 24px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Connect & Thread It
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

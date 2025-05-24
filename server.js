@@ -27,18 +27,39 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 // Clean the SHOP URL to remove any existing protocol
 const cleanShop = SHOP ? SHOP.replace(/^https?:\/\//, '') : ''
 
+// Helper function to clean shop URL
+function cleanShopUrl(shopUrl) {
+  if (!shopUrl) return ''
+  return shopUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+}
+
+// Helper function to get credentials - use provided ones or fall back to env
+function getCredentials(reqStoreUrl, reqApiKey) {
+  const storeUrl = reqStoreUrl || SHOP
+  const apiKey = reqApiKey || ADMIN_API_TOKEN
+  
+  return {
+    cleanShop: cleanShopUrl(storeUrl),
+    apiKey: apiKey
+  }
+}
+
 // Initialize Anthropic client with the best model
 const anthropic = new Anthropic({
   apiKey: ANTHROPIC_API_KEY,
 })
 
-// Check for required environment variables
-if (!cleanShop || !ADMIN_API_TOKEN || !ANTHROPIC_API_KEY) {
-  console.error('❌ Missing required environment variables:')
-  if (!cleanShop) console.error('  - SHOPIFY_STORE_URL')
-  if (!ADMIN_API_TOKEN) console.error('  - SHOPIFY_ADMIN_API_KEY')
-  if (!ANTHROPIC_API_KEY) console.error('  - ANTHROPIC_API_KEY')
-  console.error('Please create a .env file with your credentials')
+// Check for required environment variables (now optional for Shopify, required for Anthropic)
+if (!ANTHROPIC_API_KEY) {
+  console.error('❌ Missing required environment variable:')
+  console.error('  - ANTHROPIC_API_KEY')
+  console.error('Please create a .env file with your Anthropic API key')
+  process.exit(1)
+}
+
+if (!cleanShop || !ADMIN_API_TOKEN) {
+  console.log('⚠️ Shopify environment variables not set - will use user-provided credentials')
+  console.log('  Missing: SHOPIFY_STORE_URL and/or SHOPIFY_ADMIN_API_KEY')
 }
 
 // Serve static files (for output.png and uploads)
@@ -190,8 +211,10 @@ Format:
 }
 
 // Function to upload image to Shopify
-async function uploadImageToShopify(productId) {
+async function uploadImageToShopify(productId, credentials) {
   try {
+    const { cleanShop: shopUrl, apiKey } = credentials
+    
     // Read the Thread It enhanced image file
     const imagePath = 'public/uploads/thread-it-enhanced.png'
     
@@ -211,10 +234,10 @@ async function uploadImageToShopify(productId) {
     
     console.log('📷 Uploading design image to Shopify...')
     
-    const result = await fetch(`https://${cleanShop}/admin/api/2023-10/products/${productId}/images.json`, {
+    const result = await fetch(`https://${shopUrl}/admin/api/2023-10/products/${productId}/images.json`, {
       method: 'POST',
       headers: {
-        'X-Shopify-Access-Token': ADMIN_API_TOKEN,
+        'X-Shopify-Access-Token': apiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -312,18 +335,18 @@ app.post('/api/thread-it', async (req, res) => {
 })
 
 // Function to install Shopify theme
-// Function to install Shopify theme from a public ZIP URL
-async function installShopifyTheme() {
+async function installShopifyTheme(credentials) {
   try {
+    const { cleanShop: shopUrl, apiKey } = credentials
     const PUBLIC_THEME_URL = 'https://fc931dfc-913f-4742-8668-3e1b778553d1-00-29zxc3l7r8rth.picard.replit.dev/theme.zip'
 
     console.log('🎨 Installing ThreadIt theme via public URL...')
 
     // 1. Create the theme using the public ZIP URL
-    const themeResp = await fetch(`https://${cleanShop}/admin/api/2023-10/themes.json`, {
+    const themeResp = await fetch(`https://${shopUrl}/admin/api/2023-10/themes.json`, {
       method: 'POST',
       headers: {
-        'X-Shopify-Access-Token': ADMIN_API_TOKEN,
+        'X-Shopify-Access-Token': apiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -352,16 +375,16 @@ async function installShopifyTheme() {
   }
 }
 
-
 // Function to publish a theme (optional)
-async function publishTheme(themeId) {
+async function publishTheme(themeId, credentials) {
   try {
+    const { cleanShop: shopUrl, apiKey } = credentials
     console.log('🚀 Publishing theme...')
     
-    const result = await fetch(`https://${cleanShop}/admin/api/2023-10/themes/${themeId}.json`, {
+    const result = await fetch(`https://${shopUrl}/admin/api/2023-10/themes/${themeId}.json`, {
       method: 'PUT',
       headers: {
-        'X-Shopify-Access-Token': ADMIN_API_TOKEN,
+        'X-Shopify-Access-Token': apiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -387,65 +410,33 @@ async function publishTheme(themeId) {
   }
 }
 
-// Route for theme installation
-app.post('/install-theme', async (req, res) => {
-  try {
-    // Check if environment variables are set
-    if (!cleanShop || !ADMIN_API_TOKEN) {
-      return res.status(500).json({ 
-        error: 'Server configuration error', 
-        details: 'Missing Shopify credentials in environment variables' 
-      })
-    }
-
-    console.log('🎨 Installing custom ThreadIt theme...')
-    const themeResult = await installShopifyTheme()
-    
-    if (themeResult.success) {
-      res.json({
-        message: 'Theme installed successfully!',
-        theme: themeResult.theme,
-        details: themeResult.message
-      })
-    } else {
-      res.status(400).json({
-        error: themeResult.error,
-        details: themeResult.details
-      })
-    }
-  } catch (err) {
-    console.error('❌ Server error:', err)
-    res.status(500).json({ error: 'Server error', details: err.message })
-  }
-})
-
 app.post('/add-product', async (req, res) => {
   try {
-    // Check if environment variables are set
-    if (!cleanShop || !ADMIN_API_TOKEN) {
-      return res.status(500).json({ 
-        error: 'Server configuration error', 
-        details: 'Missing Shopify credentials in environment variables' 
+    // Get credentials from request body or fall back to environment variables
+    const { storeUrl: reqStoreUrl, apiKey: reqApiKey } = req.body || {}
+    const credentials = getCredentials(reqStoreUrl, reqApiKey)
+    
+    // Check if we have valid credentials
+    if (!credentials.cleanShop || !credentials.apiKey) {
+      return res.status(400).json({ 
+        error: 'Missing Shopify credentials', 
+        details: 'Please provide both storeUrl and apiKey in request body, or set environment variables' 
       })
     }
-
-    // Get garment type from request body
-    const { garmentType } = req.body
-    console.log('🎽 Garment type received:', garmentType)
 
     console.log('📸 Taking screenshot...')
     await takeScreenshot()
 
     console.log('🤖 Generating product details with AI...')
-    const productDetails = await generateProductDetails(garmentType)
+    const productDetails = await generateProductDetails()
 
     console.log('🎨 Installing ThreadIt theme...')
-    const themeResult = await installShopifyTheme()
+    const themeResult = await installShopifyTheme(credentials)
     
     let publishedTheme = null;
     if (themeResult.success && themeResult.theme && themeResult.theme.id) {
       // Auto-publish the theme after installing
-      publishedTheme = await publishTheme(themeResult.theme.id);
+      publishedTheme = await publishTheme(themeResult.theme.id, credentials);
       if (publishedTheme) {
         console.log('✅ Theme published successfully');
       } else {
@@ -456,13 +447,13 @@ app.post('/add-product', async (req, res) => {
     }
 
     console.log('🚀 Making request to Shopify...')
-    console.log('Store URL:', cleanShop)
+    console.log('Store URL:', credentials.cleanShop)
     console.log('Generated product:', productDetails)
 
-    const result = await fetch(`https://${cleanShop}/admin/api/2023-10/products.json`, {
+    const result = await fetch(`https://${credentials.cleanShop}/admin/api/2023-10/products.json`, {
       method: 'POST',
       headers: {
-        'X-Shopify-Access-Token': ADMIN_API_TOKEN,
+        'X-Shopify-Access-Token': credentials.apiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -495,7 +486,7 @@ app.post('/add-product', async (req, res) => {
     }
 
     // Upload the design image to the product
-    const uploadedImage = await uploadImageToShopify(json.product.id)
+    const uploadedImage = await uploadImageToShopify(json.product.id, credentials)
 
     res.json({ 
       message: 'Product added to Shopify successfully!', 

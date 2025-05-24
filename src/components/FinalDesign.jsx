@@ -22,6 +22,14 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
     try {
       console.log("Launching product to Shopify...")
       
+      // Get stored credentials from sessionStorage
+      const storeUrl = sessionStorage.getItem('shopify_store_url')
+      const apiKey = sessionStorage.getItem('shopify_api_key')
+      
+      if (!storeUrl || !apiKey) {
+        throw new Error('Shopify credentials not found. Please try the Thread It process again.')
+      }
+      
       // Update progress to show theme installation
       setTimeout(() => {
         setProgress('🎨 Installing ThreadIt theme...')
@@ -44,8 +52,9 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          garmentType: selectedGarment?.name || 'T-Shirt'
-        }),
+          storeUrl: storeUrl,
+          apiKey: apiKey
+        })
       })
 
       const data = await response.json()
