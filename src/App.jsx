@@ -3,19 +3,44 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Tldraw, createShapeId, AssetRecordType } from "tldraw"
 import { GarmentSelector } from "./components/GarmentSelector"
+import { SavedDesigns } from "./components/SavedDesigns"
 import "./App.css"
 
 export default function App() {
   const [selectedGarment, setSelectedGarment] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved'
+  const [savedDesigns, setSavedDesigns] = useState([])
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [currentEditor, setCurrentEditor] = useState(null)
   const templateLoadedRef = useRef(false)
+  const initialCanvasStateRef = useRef(null)
 
   // Debug logging
   useEffect(() => {
     console.log("App: selectedGarment changed to:", selectedGarment?.name || "null")
     // Reset template loaded flag when garment changes
     templateLoadedRef.current = false
+    setHasUnsavedChanges(false)
   }, [selectedGarment])
+
+  // Load saved designs from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('threadsketch-saved-designs')
+    if (saved) {
+      try {
+        setSavedDesigns(JSON.parse(saved))
+      } catch (error) {
+        console.error('Failed to load saved designs:', error)
+      }
+    }
+  }, [])
+
+  // Save designs to localStorage whenever savedDesigns changes
+  useEffect(() => {
+    localStorage.setItem('threadsketch-saved-designs', JSON.stringify(savedDesigns))
+  }, [savedDesigns])
 
   const handleGarmentSelect = useCallback((garment) => {
     console.log("App: Garment selection started:", garment.name)
@@ -25,14 +50,96 @@ export default function App() {
     setTimeout(() => {
       console.log("App: Setting selectedGarment to:", garment.name)
       setSelectedGarment(garment)
+      setCurrentView('design')
       setIsLoading(false)
     }, 100)
   }, [])
 
   const handleBackToTemplates = useCallback(() => {
     console.log("App: Going back to templates")
+    if (hasUnsavedChanges) {
+      setShowSaveDialog(true)
+    } else {
+      setSelectedGarment(null)
+      setCurrentView('templates')
+      setIsLoading(false)
+    }
+  }, [hasUnsavedChanges])
+
+  const handleDiscardChanges = useCallback(() => {
+    console.log("App: Discarding changes")
+    // Clear the canvas by reloading without persistence
+    const garmentId = selectedGarment?.id
+    if (garmentId) {
+      localStorage.removeItem(`ThreadSketch-${garmentId}`)
+    }
+    setShowSaveDialog(false)
     setSelectedGarment(null)
+    setCurrentView('templates')
+    setHasUnsavedChanges(false)
     setIsLoading(false)
+  }, [selectedGarment])
+
+  const handleSaveDesign = useCallback((designName) => {
+    if (!currentEditor || !selectedGarment) {
+      alert("Unable to save: Editor or garment not available")
+      return
+    }
+
+    try {
+      const snapshot = currentEditor.getSnapshot()
+      const newDesign = {
+        id: Date.now().toString(),
+        name: designName || `${selectedGarment.name} Design`,
+        garmentType: selectedGarment.name,
+        garmentImage: selectedGarment.image,
+        snapshot: snapshot,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      setSavedDesigns(prev => [...prev, newDesign])
+      setHasUnsavedChanges(false)
+      console.log("Design saved:", designName)
+      
+      // Show success feedback
+      alert(`✅ Design "${designName}" saved successfully!`)
+    } catch (error) {
+      console.error("Failed to save design:", error)
+      alert("❌ Failed to save design. Please try again.")
+    }
+  }, [currentEditor, selectedGarment])
+
+  const handleSaveAndReturn = useCallback(() => {
+    const designName = prompt("Enter a name for your design:")
+    if (designName) {
+      handleSaveDesign(designName)
+      setShowSaveDialog(false)
+      setSelectedGarment(null)
+      setCurrentView('templates')
+      setIsLoading(false)
+    }
+  }, [handleSaveDesign])
+
+  const handleViewDesign = useCallback((design) => {
+    console.log("Loading saved design:", design.name)
+    
+    // Find the garment that matches this design
+    const garment = {
+      id: design.garmentType.toLowerCase().replace(/\s+/g, '-'),
+      name: design.garmentType,
+      image: design.garmentImage
+    }
+    
+    // Clear any existing persistence for this garment to load fresh
+    localStorage.removeItem(`ThreadSketch-${garment.id}`)
+    
+    // Set the garment and switch to design view
+    setSelectedGarment(garment)
+    setCurrentView('design')
+    
+    // Store the design snapshot to load when editor mounts
+    window.threadSketchDesignToLoad = design.snapshot
   }, [])
 
   // Add garment template to canvas when TLDraw mounts
@@ -101,13 +208,70 @@ export default function App() {
         editor.sendToBack([shapeId])
         editor.zoomToFit()
         console.log('Garment template added as shape with asset reference')
+
+        // Store initial state for change detection
+        setTimeout(() => {
+          initialCanvasStateRef.current = editor.getSnapshot()
+        }, 1000)
       } catch (error) {
         console.error('Failed to load garment image:', error)
       }
     }
 
-    // Call the async function but don't await it
-    loadGarmentTemplate()
+    // Store editor reference
+    setCurrentEditor(editor)
+
+    // Check if we need to load a saved design
+    if (window.threadSketchDesignToLoad) {
+      console.log("Loading saved design snapshot...")
+      try {
+        editor.loadSnapshot(window.threadSketchDesignToLoad)
+        setHasUnsavedChanges(false)
+        window.threadSketchDesignToLoad = null // Clear it
+        console.log("Saved design loaded successfully")
+        
+        // Store initial state for change detection
+        setTimeout(() => {
+          initialCanvasStateRef.current = editor.getSnapshot()
+        }, 1000)
+      } catch (error) {
+        console.error("Failed to load saved design:", error)
+        // Fall back to loading template normally
+        loadGarmentTemplate()
+      }
+    } else {
+      // Normal template loading
+      loadGarmentTemplate()
+    }
+
+    // Set up change detection - simpler approach
+    let changeTimeout
+    const unsubscribe = editor.store.listen((entry) => {
+      // Clear any existing timeout
+      if (changeTimeout) clearTimeout(changeTimeout)
+      
+      // Debounce change detection to avoid too many calls
+      changeTimeout = setTimeout(() => {
+        if (initialCanvasStateRef.current) {
+          const currentShapes = editor.getCurrentPageShapes()
+          // Consider it changed if we have more than just the template shape
+          // or if any existing shapes have been modified
+          const hasUserContent = currentShapes.some(shape => 
+            !shape.id.includes('garment-template') && 
+            (shape.type === 'draw' || shape.type === 'geo' || shape.type === 'text' || shape.type === 'note')
+          )
+          
+          console.log('Change detected, hasUserContent:', hasUserContent, 'shapes:', currentShapes.length)
+          setHasUnsavedChanges(hasUserContent)
+        }
+      }, 100)
+    })
+
+    // Return cleanup function
+    return () => {
+      if (changeTimeout) clearTimeout(changeTimeout)
+      unsubscribe()
+    }
   }, [selectedGarment])
 
   console.log("App: Rendering - selectedGarment:", selectedGarment?.name || "none", "isLoading:", isLoading)
@@ -133,7 +297,7 @@ export default function App() {
   }
 
   // Show TLDraw with template
-  if (selectedGarment) {
+  if (currentView === 'design' && selectedGarment) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "#ffffff" }}>
         {/* TLDraw with garment template added as a shape */}
@@ -142,23 +306,195 @@ export default function App() {
           onMount={handleTLDrawMount}
         />
 
-        {/* Back button */}
+        {/* Navigation and action buttons */}
+        <div style={{ position: "absolute", top: "47px", left: "5px", zIndex: 1000, display: "flex", gap: "10px" }}>
+          {/* Back button */}
+          <button
+            onClick={handleBackToTemplates}
+            style={{
+              background: "#333",
+              color: "white",
+              border: "1px solid #555",
+              borderRadius: "8px",
+              padding: "10px 16px",
+              cursor: "pointer",
+              fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+              fontSize: "14px",
+              fontWeight: "300",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#444"
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "#333"
+            }}
+          >
+            ← Back
+          </button>
+
+          {/* Save button */}
+          <button
+            onClick={() => {
+              const designName = prompt("Enter a name for your design:")
+              if (designName) {
+                handleSaveDesign(designName)
+              }
+            }}
+            style={{
+              background: "#059669",
+              color: "white",
+              border: "1px solid #555",
+              borderRadius: "8px",
+              padding: "10px 16px",
+              cursor: "pointer",
+              fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+              fontSize: "14px",
+              fontWeight: "300",
+              opacity: hasUnsavedChanges ? 1 : 0.7,
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#047857"
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "#059669"
+            }}
+            title={hasUnsavedChanges ? "Save your current design" : "Save current canvas (no changes detected)"}
+          >
+            💾 Save Design
+          </button>
+        </div>
+
+
+
+        {/* Save Dialog */}
+        {showSaveDialog && (
+          <div style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+          }}>
+            <div style={{
+              background: "#1a1a1a",
+              color: "white",
+              padding: "30px",
+              borderRadius: "16px",
+              border: "1px solid #333",
+              fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+              textAlign: "center",
+              maxWidth: "400px",
+            }}>
+              <h3 style={{ marginBottom: "20px", fontSize: "18px" }}>Unsaved Changes</h3>
+              <p style={{ marginBottom: "30px", color: "#ccc", lineHeight: "1.5" }}>
+                You have unsaved changes to your design. What would you like to do?
+              </p>
+              <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
+                <button
+                  onClick={handleSaveAndReturn}
+                  style={{
+                    background: "#059669",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 20px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  💾 Save & Exit
+                </button>
+                <button
+                  onClick={handleDiscardChanges}
+                  style={{
+                    background: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 20px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  🗑️ Discard
+                </button>
+                <button
+                  onClick={() => setShowSaveDialog(false)}
+                  style={{
+                    background: "#6b7280",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 20px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Show saved designs
+  if (currentView === 'saved') {
+    return <SavedDesigns 
+      savedDesigns={savedDesigns} 
+      setSavedDesigns={setSavedDesigns} 
+      onBack={() => setCurrentView('templates')}
+      onViewDesign={handleViewDesign}
+    />
+  }
+
+  // Show garment selector with navigation
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Navigation header */}
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        background: "#1a1a1a",
+        borderBottom: "1px solid #333",
+        padding: "15px 20px",
+        zIndex: 1000,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}>
+        <div style={{
+          fontSize: "20px",
+          fontWeight: "600",
+          color: "white",
+          fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+        }}>
+          ThreadSketch
+        </div>
+        
         <button
-          onClick={handleBackToTemplates}
+          onClick={() => setCurrentView('saved')}
           style={{
-            position: "absolute",
-            top: "47px",
-            left: "5px",
-            zIndex: 1000,
             background: "#333",
             color: "white",
             border: "1px solid #555",
             borderRadius: "8px",
-            padding: "10px 16px",
+            padding: "8px 16px",
             cursor: "pointer",
             fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
             fontSize: "14px",
-            fontWeight: "300",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
           }}
           onMouseEnter={(e) => {
             e.target.style.background = "#444"
@@ -167,12 +503,14 @@ export default function App() {
             e.target.style.background = "#333"
           }}
         >
-          ← Back to Templates
+          📁 Saved Designs ({savedDesigns.length})
         </button>
       </div>
-    )
-  }
-
-  // Show garment selector
-  return <GarmentSelector onGarmentSelect={handleGarmentSelect} />
+      
+      {/* Add top padding to account for fixed header */}
+      <div style={{ paddingTop: "80px" }}>
+        <GarmentSelector onGarmentSelect={handleGarmentSelect} />
+      </div>
+    </div>
+  )
 }
