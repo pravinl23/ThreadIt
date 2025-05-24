@@ -6,6 +6,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import puppeteer from 'puppeteer'
 import fs from 'fs'
 import path from 'path'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
+const FormData = require('form-data')
 import formidable from 'formidable'
 import { nanoid } from 'nanoid'
 import { generateProduct, enhanceProduct } from './src/services/productProcessor.js'
@@ -40,15 +43,30 @@ if (!cleanShop || !ADMIN_API_TOKEN || !ANTHROPIC_API_KEY) {
 
 // Serve static files (for output.png and uploads)
 app.use('/static', express.static('public'))
-app.use('/uploads', express.static('public/uploads'))
+app.use('/uploads', express.static(path.join('public','uploads')))
+
+// Serve theme file for Shopify installation
+app.get('/theme.zip', (req, res) => {
+  const themeZipPath = path.join(process.cwd(), 'themes', 'theme.zip')
+  
+  if (!fs.existsSync(themeZipPath)) {
+    return res.status(404).json({ error: 'Theme file not found' })
+  }
+  
+  res.setHeader('Content-Type', 'application/zip')
+  res.setHeader('Content-Disposition', 'attachment; filename="theme.zip"')
+  res.sendFile(themeZipPath)
+})
 
 // Function to take screenshot and save as output.png
 async function takeScreenshot() {
   try {
     const browser = await puppeteer.launch()
     const page = await browser.newPage()
-    await page.goto('http://localhost:5173') // Vite dev server default port
-    await page.waitForTimeout(2000) // Wait for page to load
+    await page.goto('http://localhost:5175') // Updated to match current Vite port
+    
+    // Use proper delay method for newer Puppeteer versions
+    await new Promise(resolve => setTimeout(resolve, 2000)) // Wait for page to load
     
     // Take screenshot
     await page.screenshot({ 
@@ -283,6 +301,114 @@ app.post('/api/thread-it', async (req, res) => {
   }
 })
 
+// Function to install Shopify theme
+// Function to install Shopify theme from a public ZIP URL
+async function installShopifyTheme() {
+  try {
+    const PUBLIC_THEME_URL = 'https://fc931dfc-913f-4742-8668-3e1b778553d1-00-29zxc3l7r8rth.picard.replit.dev/theme.zip'
+
+    console.log('🎨 Installing ThreadSketch theme via public URL...')
+
+    // 1. Create the theme using the public ZIP URL
+    const themeResp = await fetch(`https://${cleanShop}/admin/api/2023-10/themes.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': ADMIN_API_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        theme: {
+          name: `ThreadSketch Theme ${Date.now()}`,
+          src : PUBLIC_THEME_URL,
+          role: 'unpublished' // Use 'main' if you want to publish immediately
+        }
+      })
+    });
+
+    const themeJson = await themeResp.json();
+    if (!themeResp.ok) throw new Error(JSON.stringify(themeJson));
+
+    console.log('✅ Theme created in Shopify. ID:', themeJson.theme.id);
+
+    return {
+      success  : true,
+      installed: true,
+      theme    : themeJson.theme
+    };
+
+  } catch (err) {
+    console.error('❌ Theme install failed:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+
+// Function to publish a theme (optional)
+async function publishTheme(themeId) {
+  try {
+    console.log('🚀 Publishing theme...')
+    
+    const result = await fetch(`https://${cleanShop}/admin/api/2023-10/themes/${themeId}.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': ADMIN_API_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        theme: {
+          id: themeId,
+          role: 'main'
+        }
+      })
+    })
+
+    const json = await result.json()
+    
+    if (result.ok) {
+      console.log('✅ Theme published successfully')
+      return json.theme
+    } else {
+      console.error('❌ Theme publish failed:', json)
+      return null
+    }
+  } catch (error) {
+    console.error('❌ Theme publish error:', error)
+    return null
+  }
+}
+
+// Route for theme installation
+app.post('/install-theme', async (req, res) => {
+  try {
+    // Check if environment variables are set
+    if (!cleanShop || !ADMIN_API_TOKEN) {
+      return res.status(500).json({ 
+        error: 'Server configuration error', 
+        details: 'Missing Shopify credentials in environment variables' 
+      })
+    }
+
+    console.log('🎨 Installing custom ThreadSketch theme...')
+    const themeResult = await installShopifyTheme()
+    
+    if (themeResult.success) {
+      res.json({
+        message: 'Theme installed successfully!',
+        theme: themeResult.theme,
+        details: themeResult.message
+      })
+    } else {
+      res.status(400).json({
+        error: themeResult.error,
+        details: themeResult.details
+      })
+    }
+  } catch (err) {
+    console.error('❌ Server error:', err)
+    res.status(500).json({ error: 'Server error', details: err.message })
+  }
+})
+
 app.post('/add-product', async (req, res) => {
   try {
     // Check if environment variables are set
@@ -298,6 +424,22 @@ app.post('/add-product', async (req, res) => {
 
     console.log('🤖 Generating product details with AI...')
     const productDetails = await generateProductDetails()
+
+    console.log('🎨 Installing ThreadSketch theme...')
+    const themeResult = await installShopifyTheme()
+    
+    let publishedTheme = null;
+    if (themeResult.success && themeResult.theme && themeResult.theme.id) {
+      // Auto-publish the theme after installing
+      publishedTheme = await publishTheme(themeResult.theme.id);
+      if (publishedTheme) {
+        console.log('✅ Theme published successfully');
+      } else {
+        console.warn('⚠️ Theme installed but failed to publish automatically');
+      }
+    } else {
+      console.warn('⚠️ Theme installation failed, continuing with product creation:', themeResult.error)
+    }
 
     console.log('🚀 Making request to Shopify...')
     console.log('Store URL:', cleanShop)
@@ -342,10 +484,28 @@ app.post('/add-product', async (req, res) => {
     const uploadedImage = await uploadImageToShopify(json.product.id)
 
     res.json({ 
-      message: 'Product added to waitlist! Customers can now sign up for updates.', 
+      message: 'Product added to Shopify successfully!', 
       product: json.product,
       aiDetails: productDetails,
       uploadedImage: uploadedImage,
+      theme: themeResult.success ? {
+        installed: true,
+        success: true,
+        theme: themeResult.theme,
+        themeId: themeResult.theme.id,
+        published: publishedTheme ? true : false,
+        publishedTheme: publishedTheme,
+        message: publishedTheme 
+          ? `✅ Theme installed and published successfully! Theme: ${themeResult.theme.name}`
+          : `✅ Theme installed successfully! Theme: ${themeResult.theme.name} (Published: No)`
+      } : {
+        installed: false,
+        success: false,
+        error: themeResult.error,
+        message: 'Theme installation failed, but product was created successfully',
+        published: false,
+        details: themeResult.details || 'Theme installation encountered an error'
+      },
       waitlistEnabled: true
     })
   } catch (err) {

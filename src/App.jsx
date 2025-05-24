@@ -11,7 +11,7 @@ import "./App.css"
 export default function App() {
   const [selectedGarment, setSelectedGarment] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved', 'thread', 'preview'
+  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved', 'thread', 'preview', 'final'
   const [savedDesigns, setSavedDesigns] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -433,7 +433,7 @@ export default function App() {
                   // Construct full URL pointing to Express server
                   const fullImageUrl = `http://localhost:3001${data.url}`
                   setPreviewUrl(fullImageUrl)
-                  setCurrentView('preview')
+                  setCurrentView('final')
                 } else {
                   throw new Error(data.error || 'Thread It failed')
                 }
@@ -733,190 +733,22 @@ export default function App() {
     )
   }
 
-  // Show preview page
-  if (currentView === 'preview') {
+  // Show FinalDesign component after Thread It
+  if (currentView === 'final') {
     // Redirect to templates if no preview URL
     if (!previewUrl) {
       setCurrentView('templates')
       return null
     }
 
-    const handleLaunchToShopify = async () => {
-      try {
-        console.log("Launching enhanced product to Shopify...")
-        const response = await fetch('http://localhost:3001/add-product', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          alert(`✅ Enhanced product added to waitlist!\nTitle: ${data.aiDetails?.title || 'ThreadSketch Design'}\nCustomers can now sign up for updates!`)
-          console.log("Product created:", data.product)
-          console.log("AI-generated details:", data.aiDetails)
-          
-          // Clear preview and return to templates
-          setPreviewUrl(null)
-          setCurrentView('templates')
-        } else {
-          alert(`❌ Failed to add product: ${data.error}`)
-          console.error("Error:", data.error)
-        }
-      } catch (error) {
-        alert(`❌ Error connecting to server: ${error.message}`)
-        console.error("Network error:", error)
-      }
-    }
-
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#1a1a1a",
-        color: "white",
-        fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        padding: "20px",
-      }}>
-        <button
-          onClick={() => {
-            setPreviewUrl(null)
-            setCurrentView('templates')
-          }}
-          style={{
-            position: "absolute",
-            top: "20px",
-            left: "20px",
-            background: "#333",
-            color: "white",
-            border: "1px solid #555",
-            borderRadius: "8px",
-            padding: "10px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-          }}
-        >
-          ← Back to Templates
-        </button>
-        
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          maxWidth: "900px",
-          width: "100%",
-        }}>
-          <h1 style={{
-            fontSize: "32px",
-            margin: "0 0 30px 0",
-            textAlign: "center",
-          }}>
-            ✨ AI Enhanced Design
-          </h1>
-
-          <div style={{
-            background: "#2a2a2a",
-            border: "2px solid #444",
-            borderRadius: "12px",
-            padding: "30px",
-            marginBottom: "30px",
-            maxWidth: "100%",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "500px",
-          }}>
-            <img
-              src={previewUrl}
-              alt="AI Enhanced Design"
-              style={{
-                maxWidth: "100%",
-                maxHeight: "700px",
-                objectFit: "contain",
-                borderRadius: "8px",
-                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
-              }}
-              onError={(e) => {
-                console.error('Failed to load preview image:', previewUrl)
-                e.target.style.display = 'none'
-                e.target.nextSibling.style.display = 'block'
-              }}
-            />
-            <div style={{
-              display: "none",
-              color: "#666",
-              textAlign: "center",
-              fontSize: "16px",
-            }}>
-              ❌ Failed to load enhanced image<br/>
-              <small>Please try again</small>
-            </div>
-          </div>
-
-          <p style={{
-            color: "#ccc",
-            textAlign: "center",
-            marginBottom: "30px",
-            fontSize: "16px",
-            lineHeight: "1.5",
-            maxWidth: "600px",
-          }}>
-            Your design has been enhanced with AI! This professional product image is ready to be launched to your Shopify store as a waitlist item.
-          </p>
-
-          <div style={{
-            display: "flex",
-            gap: "20px",
-            flexWrap: "wrap",
-            justifyContent: "center",
-          }}>
-            <button
-              onClick={() => setCurrentView('design')}
-              style={{
-                background: "#6b7280",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "12px 24px",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "500",
-              }}
-            >
-              ← Back to Design
-            </button>
-
-            <button
-              onClick={handleLaunchToShopify}
-              style={{
-                background: "#95BF47",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "16px 32px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "600",
-                transition: "background-color 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = "#7DA93F"
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = "#95BF47"
-              }}
-            >
-              🚀 Launch to Shopify
-            </button>
-          </div>
-        </div>
-      </div>
+      <FinalDesign 
+        designData={{ previewUrl }}
+        onBack={() => {
+          setPreviewUrl(null)
+          setCurrentView('design')
+        }}
+      />
     )
   }
 
