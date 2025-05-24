@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { Tldraw, createShapeId, AssetRecordType } from "tldraw"
 import { GarmentSelector } from "./components/GarmentSelector"
 import { SavedDesigns } from "./components/SavedDesigns"
+import { FinalDesign } from "./components/FinalDesign"
 import "./App.css"
 
 export default function App() {
@@ -502,152 +503,14 @@ export default function App() {
 
   // Show thread page
   if (currentView === 'thread') {
-    const handleLaunchIt = async () => {
-      try {
-        console.log("Launching product to Shopify...")
-        const response = await fetch('http://localhost:3001/add-product', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          alert(`✅ Product added to waitlist successfully!\nTitle: ${data.aiDetails?.title || 'ThreadSketch Design'}\nCustomers can now sign up for updates!`)
-          console.log("Product created:", data.product)
-          console.log("AI-generated details:", data.aiDetails)
-        } else {
-          alert(`❌ Failed to add product: ${data.error}`)
-          console.error("Error:", data.error)
-        }
-      } catch (error) {
-        alert(`❌ Error connecting to server: ${error.message}`)
-        console.error("Network error:", error)
-      }
-    }
-
-    return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#1a1a1a",
-        color: "white",
-        fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        padding: "20px",
-      }}>
-        <button
-          onClick={() => setCurrentView('templates')}
-          style={{
-            position: "absolute",
-            top: "20px",
-            left: "20px",
-            background: "#333",
-            color: "white",
-            border: "1px solid #555",
-            borderRadius: "8px",
-            padding: "10px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-          }}
-        >
-          ← Back
-        </button>
-        
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          maxWidth: "800px",
-          width: "100%",
-        }}>
-          <h1 style={{
-            fontSize: "32px",
-            margin: "0 0 30px 0",
-            textAlign: "center",
-          }}>
-            AI Design Preview
-          </h1>
-
-          <div style={{
-            background: "#2a2a2a",
-            border: "2px solid #444",
-            borderRadius: "12px",
-            padding: "20px",
-            marginBottom: "30px",
-            maxWidth: "100%",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "400px",
-          }}>
-            <img
-              src="/output.png"
-              alt="AI Generated Design"
-              style={{
-                maxWidth: "100%",
-                maxHeight: "600px",
-                objectFit: "contain",
-                borderRadius: "8px",
-              }}
-              onError={(e) => {
-                e.target.style.display = 'none'
-                e.target.nextSibling.style.display = 'block'
-              }}
-            />
-            <div style={{
-              display: "none",
-              color: "#666",
-              textAlign: "center",
-              fontSize: "16px",
-            }}>
-              📸 No design image found<br/>
-              <small>output.png will appear here when generated</small>
-            </div>
-          </div>
-
-          <p style={{
-            color: "#ccc",
-            textAlign: "center",
-            marginBottom: "20px",
-            fontSize: "16px",
-            lineHeight: "1.5",
-          }}>
-            This design will be added to your waitlist. Customers can sign up to be notified when it becomes available.
-          </p>
-        </div>
-
-        <button
-          onClick={handleLaunchIt}
-          style={{
-            position: "absolute",
-            bottom: "40px",
-            background: "#95BF47",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            padding: "16px 32px",
-            cursor: "pointer",
-            fontSize: "16px",
-            fontWeight: "600",
-            transition: "background-color 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = "#7DA93F"
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = "#95BF47"
-          }}
-        >
-          Launch It
-        </button>
-      </div>
-    )
+    return <FinalDesign 
+      designData={{ 
+        designName: `${selectedGarment?.name} Custom Design`,
+        originalGarment: selectedGarment,
+        createdAt: new Date().toISOString()
+      }}
+      onBack={() => setCurrentView('design')}
+    />
   }
 
   // Show garment selector with navigation
