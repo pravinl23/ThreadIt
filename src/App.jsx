@@ -7,11 +7,15 @@ import { SavedDesigns } from "./components/SavedDesigns"
 import { FinalDesign } from "./components/FinalDesign"
 import { useStore } from "./store/useStore"
 import "./App.css"
+import { LandingPage } from "./components/LandingPage"
+import { LoginPage } from "./components/LoginPage"
+import { SignUpPage } from "./components/SignUpPage"
 
 export default function App() {
   const [selectedGarment, setSelectedGarment] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [currentView, setCurrentView] = useState('templates') // 'templates', 'design', 'saved', 'thread', 'preview', 'final'
+  const [currentView, setCurrentView] = useState('landing') // Start with landing page
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [savedDesigns, setSavedDesigns] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -23,6 +27,36 @@ export default function App() {
 
   // Zustand store
   const { previewUrl, setPreviewUrl, isThreading, setIsThreading } = useStore()
+
+  // Check for existing auth on app load
+  useEffect(() => {
+    const authStatus = localStorage.getItem('threadit-auth')
+    if (authStatus === 'authenticated') {
+      setIsAuthenticated(true)
+      setCurrentView('templates')
+    }
+  }, [])
+
+  // Handle successful authentication
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true)
+    localStorage.setItem('threadit-auth', 'authenticated')
+    setCurrentView('templates')
+  }
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    localStorage.removeItem('threadit-auth')
+    setCurrentView('landing')
+    setSelectedGarment(null)
+    setPreviewUrl(null)
+  }
+
+  // Navigation handlers
+  const goToLogin = () => setCurrentView('login')
+  const goToSignUp = () => setCurrentView('signup')
+  const goToLanding = () => setCurrentView('landing')
 
   // Debug logging
   useEffect(() => {
@@ -357,7 +391,83 @@ export default function App() {
     }
   }
 
+  // Handle Thread It with demo credentials from .env file
+  const handleThreadItDemo = async () => {
+    try {
+      setIsThreading(true)
+      console.log('🚀 Thread It: Capturing canvas with demo credentials...')
+
+      // Get all shapes on current page
+      const shapeIds = currentEditor.getCurrentPageShapeIds()
+      if (shapeIds.size === 0) {
+        throw new Error('No shapes on canvas')
+      }
+
+      // Capture canvas as PNG with white background and 2x scale  
+      const { blob } = await currentEditor.toImage([...shapeIds], {
+        format: 'png',
+        background: true,
+        scale: 2
+      })
+
+      if (!blob) {
+        throw new Error('Failed to capture canvas')
+      }
+
+      // Prepare form data without credentials (server will use .env)
+      const formData = new FormData()
+      formData.append('image', blob, 'design.png')
+      formData.append('demo', 'true') // Flag to indicate demo mode
+
+      console.log('📤 Sending to Thread It API with demo credentials...')
+
+      // Send to Thread It API
+      const response = await fetch('http://localhost:3001/api/thread-it', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        console.log('✅ Thread It success:', data.url)
+        // Construct full URL pointing to Express server
+        const fullImageUrl = `http://localhost:3001${data.url}`
+        setPreviewUrl(fullImageUrl)
+        // Store demo flag for the final design launch
+        sessionStorage.setItem('demo_mode', 'true')
+        setCurrentView('final')
+      } else {
+        throw new Error(data.error || 'Thread It failed')
+      }
+
+    } catch (error) {
+      console.error('❌ Thread It error:', error)
+      alert(`❌ Thread It failed: ${error.message}`)
+    } finally {
+      setIsThreading(false)
+    }
+  }
+
   console.log("App: Rendering - selectedGarment:", selectedGarment?.name || "none", "isLoading:", isLoading)
+
+  // Show landing page, login, signup, or main app based on auth state and view
+  if (currentView === 'landing') {
+    return <LandingPage onLogin={goToLogin} onSignUp={goToSignUp} />
+  }
+
+  if (currentView === 'login') {
+    return <LoginPage onSuccess={handleAuthSuccess} onBack={goToLanding} onSignUp={goToSignUp} />
+  }
+
+  if (currentView === 'signup') {
+    return <SignUpPage onSuccess={handleAuthSuccess} onBack={goToLanding} onLogin={goToLogin} />
+  }
+
+  // Redirect to landing if not authenticated
+  if (!isAuthenticated) {
+    return <LandingPage onLogin={goToLogin} onSignUp={goToSignUp} />
+  }
 
   // Show loading state briefly
   if (isLoading) {
@@ -366,7 +476,7 @@ export default function App() {
         style={{
           position: "fixed",
           inset: 0,
-          background: "#1a1a1a",
+          background: "#000000",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -515,7 +625,7 @@ export default function App() {
             zIndex: 2000,
           }}>
             <div style={{
-              background: "#1a1a1a",
+              background: "#000000",
               color: "white",
               padding: "30px",
               borderRadius: "16px",
@@ -594,7 +704,7 @@ export default function App() {
             zIndex: 2000,
           }}>
             <div style={{
-              background: "#1a1a1a",
+              background: "#000000",
               color: "white",
               padding: "30px",
               borderRadius: "16px",
@@ -733,6 +843,49 @@ export default function App() {
                     Connect & Thread It
                   </button>
                 </div>
+                
+                {/* Demo Button Section */}
+                <div style={{ 
+                  marginTop: "20px", 
+                  paddingTop: "20px", 
+                  borderTop: "1px solid #333",
+                  textAlign: "center"
+                }}>
+                  <p style={{ 
+                    fontSize: "12px", 
+                    color: "#999", 
+                    marginBottom: "15px",
+                    lineHeight: "1.4"
+                  }}>
+                    Or try with demo store:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setShowCredentialsModal(false)
+                      await handleThreadItDemo()
+                    }}
+                    style={{
+                      background: "#10b981",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "12px 24px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      width: "100%",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = "#059669"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = "#10b981"
+                    }}
+                  >
+                    🎪 Demo with Preexisting Store
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -782,7 +935,7 @@ export default function App() {
     return (
       <div style={{
         minHeight: "100vh",
-        background: "#1a1a1a",
+        background: "#000000",
         color: "white",
         fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
         display: "flex",
@@ -930,7 +1083,7 @@ export default function App() {
         top: 0,
         left: 0,
         right: 0,
-        background: "#1a1a1a",
+        background: "#000000",
         borderBottom: "1px solid #333",
         padding: "15px 20px",
         zIndex: 1000,
@@ -947,30 +1100,54 @@ export default function App() {
           ThreadIt
         </div>
         
-        <button
-          onClick={() => setCurrentView('saved')}
-          style={{
-            background: "#333",
-            color: "white",
-            border: "1px solid #555",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
-            fontSize: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = "#444"
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = "#333"
-          }}
-        >
-          📁 Saved Designs ({savedDesigns.length})
-        </button>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            onClick={() => setCurrentView('saved')}
+            style={{
+              background: "#333",
+              color: "white",
+              border: "1px solid #555",
+              borderRadius: "8px",
+              padding: "8px 16px",
+              cursor: "pointer",
+              fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#444"
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "#333"
+            }}
+          >
+            📁 Saved Designs ({savedDesigns.length})
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            style={{
+              background: "#dc2626",
+              color: "white",
+              border: "1px solid #555",
+              borderRadius: "8px",
+              padding: "8px 16px",
+              cursor: "pointer",
+              fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+              fontSize: "14px",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#b91c1c"
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "#dc2626"
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
       
       {/* Add top padding to account for fixed header */}

@@ -22,7 +22,7 @@ export function SavedDesigns({ savedDesigns, setSavedDesigns, onBack, onViewDesi
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#1a1a1a",
+      background: "#000000",
       color: "white",
       fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
     }}>
@@ -32,7 +32,7 @@ export function SavedDesigns({ savedDesigns, setSavedDesigns, onBack, onViewDesi
         top: 0,
         left: 0,
         right: 0,
-        background: "#1a1a1a",
+        background: "#000000",
         borderBottom: "1px solid #333",
         padding: "15px 20px",
         zIndex: 1000,
@@ -105,7 +105,7 @@ export function SavedDesigns({ savedDesigns, setSavedDesigns, onBack, onViewDesi
                 {/* Design Preview */}
                 <div style={{
                   height: "200px",
-                  background: "#1a1a1a",
+                  background: "#000000",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

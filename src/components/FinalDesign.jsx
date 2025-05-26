@@ -5,6 +5,7 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
   const [launched, setLaunched] = useState(false)
   const [progress, setProgress] = useState('')
   const [statusUpdates, setStatusUpdates] = useState([])
+  const [productData, setProductData] = useState(null) // Store product data for redirect
 
   // Get the Thread It enhanced image URL from designData
   const enhancedImageUrl = designData?.previewUrl || '/uploads/thread-it-enhanced.png'
@@ -22,11 +23,12 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
     try {
       console.log("Launching product to Shopify...")
       
-      // Get stored credentials from sessionStorage
+      // Check if we're in demo mode or have stored credentials
+      const isDemoMode = sessionStorage.getItem('demo_mode') === 'true'
       const storeUrl = sessionStorage.getItem('shopify_store_url')
       const apiKey = sessionStorage.getItem('shopify_api_key')
       
-      if (!storeUrl || !apiKey) {
+      if (!isDemoMode && (!storeUrl || !apiKey)) {
         throw new Error('Shopify credentials not found. Please try the Thread It process again.')
       }
       
@@ -46,15 +48,17 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
         addStatusUpdate('📷 Uploading your enhanced design...')
       }, 5000)
       
+      // Prepare request body
+      const requestBody = isDemoMode 
+        ? { demo: true } // Server will use .env credentials
+        : { storeUrl: storeUrl, apiKey: apiKey } // Use provided credentials
+      
       const response = await fetch('http://localhost:3001/add-product', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          storeUrl: storeUrl,
-          apiKey: apiKey
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
@@ -62,6 +66,10 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
       if (response.ok) {
         setProgress('✅ Successfully launched to Shopify!')
         addStatusUpdate('✅ Product created successfully!')
+        
+        if (isDemoMode) {
+          addStatusUpdate('🎪 Launched using demo store credentials')
+        }
         
         if (data.theme?.installed || data.theme?.success) {
           addStatusUpdate(`🎨 Theme installation: SUCCESS!`)
@@ -82,6 +90,7 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
         addStatusUpdate('🎉 Launch completed successfully!')
         
         setLaunched(true)
+        setProductData(data)
         console.log("Product created:", data.product)
         console.log("AI-generated details:", data.aiDetails)
         console.log("Theme installation:", data.theme)
@@ -99,11 +108,43 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
     }
   }
 
+  // Function to redirect to Shopify store
+  const redirectToStore = () => {
+    if (productData) {
+      // Check if we're in demo mode or have stored credentials
+      const isDemoMode = sessionStorage.getItem('demo_mode') === 'true'
+      let storeUrl
+      
+      if (isDemoMode) {
+        // Use demo store URL (hardcoded)
+        storeUrl = 'e0irec-sj.myshopify.com'
+      } else {
+        // Use stored credentials
+        storeUrl = sessionStorage.getItem('shopify_store_url')
+        if (storeUrl) {
+          // Clean the URL to remove protocol if present
+          storeUrl = storeUrl.replace(/^https?:\/\//, '')
+        }
+      }
+      
+      if (storeUrl && productData.product?.handle) {
+        const productUrl = `https://${storeUrl}/products/${productData.product.handle}`
+        console.log('Redirecting to:', productUrl)
+        window.open(productUrl, '_blank')
+      } else {
+        // Fallback to store homepage
+        const storeHomeUrl = storeUrl ? `https://${storeUrl}` : '#'
+        console.log('Redirecting to store home:', storeHomeUrl)
+        window.open(storeHomeUrl, '_blank')
+      }
+    }
+  }
+
   return (
     <div style={{
       position: "fixed",
       inset: 0,
-      background: "#1a1a1a",
+      background: "#000000",
       color: "white",
       fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
       overflow: "hidden",
@@ -118,7 +159,7 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        background: "#1a1a1a",
+        background: "#000000",
       }}>
         <div>
           <h1 style={{ 
@@ -172,7 +213,7 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
         {/* Design Preview Panel */}
         <div style={{
           flex: "1",
-          background: "#1a1a1a",
+          background: "#000000",
           padding: "30px",
           borderRight: "1px solid #333",
         }}>
@@ -260,7 +301,7 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
         {/* Create Your Store Panel */}
         <div style={{
           width: "400px",
-          background: "#1a1a1a",
+          background: "#000000",
           padding: "30px",
           display: "flex",
           flexDirection: "column",
@@ -443,6 +484,7 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
                 maxHeight: "200px",
                 overflowY: "auto",
                 textAlign: "left",
+                marginBottom: "20px",
               }}>
                 {statusUpdates.map((update, index) => (
                   <div key={index} style={{
@@ -456,6 +498,35 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
                   </div>
                 ))}
               </div>
+
+              {/* View in Shopify Store Button */}
+              <button
+                onClick={redirectToStore}
+                style={{
+                  width: "100%",
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "16px 24px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  transition: "all 0.3s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = "linear-gradient(135deg, #2563eb, #1d4ed8)"
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = "linear-gradient(135deg, #3b82f6, #2563eb)"
+                }}
+              >
+                🛒 View in Shopify Store
+              </button>
             </div>
           )}
         </div>

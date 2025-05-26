@@ -79,6 +79,21 @@ app.get('/theme.zip', (req, res) => {
   res.sendFile(themeZipPath)
 })
 
+// API endpoint to get demo store configuration
+app.get('/api/demo-config', (req, res) => {
+  try {
+    const demoConfig = {
+      storeUrl: SHOP ? cleanShopUrl(SHOP) : null,
+      isConfigured: !!(SHOP && ADMIN_API_TOKEN)
+    }
+    
+    res.json(demoConfig)
+  } catch (error) {
+    console.error('❌ Error getting demo config:', error)
+    res.status(500).json({ error: 'Failed to get demo configuration' })
+  }
+})
+
 // Function to take screenshot and save as output.png
 async function takeScreenshot() {
   try {
@@ -338,7 +353,7 @@ app.post('/api/thread-it', async (req, res) => {
 async function installShopifyTheme(credentials) {
   try {
     const { cleanShop: shopUrl, apiKey } = credentials
-    const PUBLIC_THEME_URL = 'https://fc931dfc-913f-4742-8668-3e1b778553d1-00-29zxc3l7r8rth.picard.replit.dev/theme.zip'
+    const PUBLIC_THEME_URL = 'https://threadit-shopify.replit.app/theme.zip'
 
     console.log('🎨 Installing ThreadIt theme via public URL...')
 
@@ -413,15 +428,26 @@ async function publishTheme(themeId, credentials) {
 app.post('/add-product', async (req, res) => {
   try {
     // Get credentials from request body or fall back to environment variables
-    const { storeUrl: reqStoreUrl, apiKey: reqApiKey } = req.body || {}
-    const credentials = getCredentials(reqStoreUrl, reqApiKey)
+    const { storeUrl: reqStoreUrl, apiKey: reqApiKey, demo } = req.body || {}
+    
+    // If demo flag is true, use environment variables
+    const credentials = demo 
+      ? getCredentials(null, null) // Forces use of .env variables
+      : getCredentials(reqStoreUrl, reqApiKey)
     
     // Check if we have valid credentials
     if (!credentials.cleanShop || !credentials.apiKey) {
       return res.status(400).json({ 
         error: 'Missing Shopify credentials', 
-        details: 'Please provide both storeUrl and apiKey in request body, or set environment variables' 
+        details: demo 
+          ? 'Demo mode enabled but environment variables not configured. Please set SHOPIFY_STORE_URL and SHOPIFY_ADMIN_API_KEY in .env file'
+          : 'Please provide both storeUrl and apiKey in request body, or set environment variables' 
       })
+    }
+
+    if (demo) {
+      console.log('🎪 Demo mode enabled - using environment credentials')
+      console.log('Demo store:', credentials.cleanShop)
     }
 
     console.log('📸 Taking screenshot...')
