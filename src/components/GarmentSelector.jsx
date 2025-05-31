@@ -5,19 +5,19 @@ import { useState } from "react"
 // Add this to ensure we have enough content to scroll
 // Add more garment templates to ensure we have enough content to force scrolling
 const garmentTemplates = [
-  { id: "tee", name: "T-Shirt", image: "/assets/clothes/Tee.png" },
-  { id: "tee-long", name: "Long Sleeve Tee", image: "/assets/clothes/Tee Long Sleeve.png" },
-  { id: "tee-2", name: "T-Shirt 2", image: "/assets/clothes/Tee 2.png" },
-  { id: "hoodie", name: "Hoodie", image: "/assets/clothes/Hoodie.png" },
-  { id: "tank", name: "Tank Top", image: "/assets/clothes/Tank Top 1.png" },
-  { id: "sweater", name: "Sweater", image: "/assets/clothes/Sweater New.png" },
-  { id: "shorts", name: "Shorts", image: "/assets/clothes/Shorts.png" },
-  { id: "jeans", name: "Jeans", image: "/assets/clothes/Jeans 2.png" },
-  { id: "sweats", name: "Sweatpants", image: "/assets/clothes/Sweats 3.png" },
+  { id: "tee", name: "T-Shirt", image: "/clothes/Tee.png" },
+  { id: "tee-long", name: "Long Sleeve Tee", image: "/clothes/Tee Long Sleeve.png" },
+  { id: "tee-2", name: "T-Shirt 2", image: "/clothes/Tee 2.png" },
+  { id: "hoodie", name: "Hoodie", image: "/clothes/Hoodie.png" },
+  { id: "tank", name: "Tank Top", image: "/clothes/Tank Top 1.png" },
+  { id: "sweater", name: "Sweater", image: "/clothes/Sweater New.png" },
+  { id: "shorts", name: "Shorts", image: "/clothes/Shorts.png" },
+  { id: "jeans", name: "Jeans", image: "/clothes/Jeans 2.png" },
+  { id: "sweats", name: "Sweatpants", image: "/clothes/Sweats 3.png" },
   // Duplicate some items to ensure we have enough content to force scrolling
-  { id: "tee-extra", name: "Basic Tee", image: "/assets/clothes/Tee.png" },
-  { id: "hoodie-extra", name: "Classic Hoodie", image: "/assets/clothes/Hoodie.png" },
-  { id: "jeans-extra", name: "Slim Jeans", image: "/assets/clothes/Jeans 2.png" },
+  { id: "tee-extra", name: "Basic Tee", image: "/clothes/Tee.png" },
+  { id: "hoodie-extra", name: "Classic Hoodie", image: "/clothes/Hoodie.png" },
+  { id: "jeans-extra", name: "Slim Jeans", image: "/clothes/Jeans 2.png" },
 ]
 
 export function GarmentSelector({ onGarmentSelect }) {

@@ -117,7 +117,7 @@ export function FinalDesign({ designData, selectedGarment, onBack }) {
       
       if (isDemoMode) {
         // Use demo store URL (hardcoded)
-        storeUrl = 'e0irec-sj.myshopify.com'
+        storeUrl = '32sxs7-yt.myshopify.com'
       } else {
         // Use stored credentials
         storeUrl = sessionStorage.getItem('shopify_store_url')
