@@ -1,11 +1,6 @@
 # ThreadSketch 🎨
 
-<div align="center">
-  <video width="100%" controls>
-    <source src="./public/videos/threadit.mov" type="video/quicktime">
-    Your browser does not support the video tag.
-  </video>
-</div>
+[![Demo](./public/videos/thumbnail.png)](./public/videos/threadit.mov)
 
 > A powerful web application that transforms your sketches into custom garment designs, powered by AI and integrated with Shopify.
 
