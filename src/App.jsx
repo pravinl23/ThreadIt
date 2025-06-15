@@ -114,9 +114,16 @@ export default function App() {
 
   const handleBackToTemplates = useCallback(() => {
     console.log("App: Going back to templates")
-    // Always show save dialog when going back, regardless of unsaved changes
-    setShowSaveDialog(true)
-  }, [])
+    // Only show save dialog if there are unsaved changes
+    if (hasUnsavedChanges) {
+      setShowSaveDialog(true)
+    } else {
+      // No changes, go back directly
+      setSelectedGarment(null)
+      setCurrentView('templates')
+      setIsLoading(false)
+    }
+  }, [hasUnsavedChanges])
 
   const handleDiscardChanges = useCallback(() => {
     console.log("App: Discarding changes")
