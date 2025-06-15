@@ -2,7 +2,7 @@
 
 <div align="center">
   <video width="100%" controls>
-    <source src="https://drive.google.com/uc?export=download&id=1fgPR2yc9H0t0ydUT8Vs_QOFzhKvMxvXl&filename=threaditdemo.mp4" type="video/mp4">
+    <source src="./public/videos/threadit.mov" type="video/quicktime">
     Your browser does not support the video tag.
   </video>
 </div>
