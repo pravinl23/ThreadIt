@@ -1,4 +1,4 @@
-# ThreadSketch 🎨
+# ThreadIt 🎨
 
 [![Demo](./public/videos/thumbnail.png)](./public/videos/threadit.mov)
 
